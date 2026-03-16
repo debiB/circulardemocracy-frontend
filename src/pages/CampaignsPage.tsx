@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/utils'; // Import the new utility
 import { PageLayout } from '@/components/PageLayout'; // Import PageLayout
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 import { Suspense } from 'react'; // Import Suspense
+import { useNavigate } from 'react-router-dom';
 
 // A simple spinner component for fallback within the card
 const LoadingSpinner = () => (
@@ -29,6 +30,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
 }
 
 export function CampaignsPage() {
+  const navigate = useNavigate();
   const { data: campaigns } = useSuspenseQuery<Campaign[], Error>({
     queryKey: ['campaigns'],
     queryFn: fetchCampaigns,
@@ -54,7 +56,11 @@ export function CampaignsPage() {
                   </thead>
                   <tbody>
                     {campaigns.map((campaign) => (
-                      <tr key={campaign.id}>
+                      <tr 
+                        key={campaign.id}
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      >
                         <td className="py-2 px-4 border-b">{campaign.id}</td>
                         <td className="py-2 px-4 border-b">{campaign.name}</td>
                         <td className="py-2 px-4 border-b">{formatDate(campaign.created_at)}</td>

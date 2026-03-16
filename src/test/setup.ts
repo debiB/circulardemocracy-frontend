@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 declare global {
   // Helper used by Vite SSR transforms; define a minimal no-op implementation
@@ -14,3 +15,7 @@ globalThis.__vite_ssr_exportName__ = (mod: any, key: string, alias: string) => {
   }
 };
 
+// Mock the problematic ES module to prevent jsdom loading errors
+vi.mock("@exodus/bytes/encoding-lite.js", () => ({
+  default: {},
+}));

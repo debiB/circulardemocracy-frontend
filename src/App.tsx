@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
+import { CampaignMessagesPage } from "./pages/CampaignMessagesPage";
 import { UsersPage } from "./pages/UsersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -74,6 +75,20 @@ export function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route
+            path="/campaigns/:id"
+            element={
+              <Suspense
+                fallback={
+                  <PageLayout centerContent={true}>
+                    <LoadingSpinner />
+                  </PageLayout>
+                }
+              >
+                <CampaignMessagesPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/users"
             element={
