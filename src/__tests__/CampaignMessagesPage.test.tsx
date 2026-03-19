@@ -1,11 +1,12 @@
 import React, { Suspense } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import * as CampaignMessagesPageModule from "@/pages/CampaignMessagesPage";
 
 const mockUseSuspenseQuery = vi.fn();
 const mockNavigate = vi.fn();
+const mockSupabaseFrom = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useSuspenseQuery: () => mockUseSuspenseQuery(),
@@ -18,6 +19,12 @@ vi.mock("react-router-dom", async () => {
     useNavigate: () => mockNavigate,
   };
 });
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    from: (table: string) => mockSupabaseFrom(table),
+  },
+}));
 
 vi.mock("@/components/PageLayout", () => ({
   PageLayout: ({ children }: { children: React.ReactNode }) => (
@@ -87,6 +94,7 @@ describe("CampaignMessagesPage", () => {
   beforeEach(() => {
     mockUseSuspenseQuery.mockReset();
     mockNavigate.mockClear();
+    mockSupabaseFrom.mockReset();
     window.alert = vi.fn();
   });
 
@@ -178,7 +186,7 @@ describe("CampaignMessagesPage", () => {
       expect(exportButton).toBeInTheDocument();
     });
 
-    it("shows alert when export button is clicked (placeholder)", () => {
+    it("shows alert when export button is clicked (placeholder)", async () => {
       mockUseSuspenseQuery
         .mockReturnValueOnce({
           data: {
@@ -190,17 +198,26 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [],
+          data: { messages: [], totalCount: 0 },
         });
+
+      mockSupabaseFrom.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      });
 
       renderCampaignMessagesPage("1");
 
       const exportButton = screen.getByText(/export csv/i);
       fireEvent.click(exportButton);
 
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("CSV export functionality not yet implemented"),
-      );
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(
+          expect.stringContaining("No messages to export"),
+        );
+      });
     });
   });
 
@@ -217,7 +234,7 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [],
+          data: { messages: [], totalCount: 0 },
         });
 
       renderCampaignMessagesPage("1");
@@ -239,7 +256,7 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [],
+          data: { messages: [], totalCount: 0 },
         });
 
       renderCampaignMessagesPage("1");
@@ -263,19 +280,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -302,19 +322,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: "2024-01-16T09:00:00Z",
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: "2024-01-16T09:00:00Z",
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -348,30 +371,33 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-            {
-              id: 2,
-              sender_country: "GB",
-              duplicate_rank: 1,
-              classification_confidence: 0.92,
-              language: "en",
-              received_at: "2024-01-16T14:20:00Z",
-              processed_at: "2024-01-16T14:21:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+              {
+                id: 2,
+                sender_country: "GB",
+                duplicate_rank: 1,
+                classification_confidence: 0.92,
+                language: "en",
+                received_at: "2024-01-16T14:20:00Z",
+                processed_at: "2024-01-16T14:21:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 2,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -396,19 +422,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 2,
-              sender_country: "US",
-              duplicate_rank: 2,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 2,
+                sender_country: "US",
+                duplicate_rank: 2,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -428,19 +457,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: null,
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: null,
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -461,41 +493,44 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-            {
-              id: 2,
-              sender_country: "GB",
-              duplicate_rank: 0,
-              classification_confidence: 0.55,
-              language: "en",
-              received_at: "2024-01-16T14:20:00Z",
-              processed_at: "2024-01-16T14:21:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-            {
-              id: 3,
-              sender_country: "FR",
-              duplicate_rank: 0,
-              classification_confidence: 0.25,
-              language: "fr",
-              received_at: "2024-01-17T08:10:00Z",
-              processed_at: "2024-01-17T08:11:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+              {
+                id: 2,
+                sender_country: "GB",
+                duplicate_rank: 0,
+                classification_confidence: 0.55,
+                language: "en",
+                received_at: "2024-01-16T14:20:00Z",
+                processed_at: "2024-01-16T14:21:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+              {
+                id: 3,
+                sender_country: "FR",
+                duplicate_rank: 0,
+                classification_confidence: 0.25,
+                language: "fr",
+                received_at: "2024-01-17T08:10:00Z",
+                processed_at: "2024-01-17T08:11:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 3,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -522,19 +557,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -555,19 +593,22 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [
-            {
-              id: 1,
-              sender_country: "US",
-              duplicate_rank: 0,
-              classification_confidence: 0.85,
-              language: "en",
-              received_at: "2024-01-15T10:30:00Z",
-              processed_at: "2024-01-15T10:31:00Z",
-              reply_sent_at: null,
-              processing_status: "processed",
-            },
-          ],
+          data: {
+            messages: [
+              {
+                id: 1,
+                sender_country: "US",
+                duplicate_rank: 0,
+                classification_confidence: 0.85,
+                language: "en",
+                received_at: "2024-01-15T10:30:00Z",
+                processed_at: "2024-01-15T10:31:00Z",
+                reply_sent_at: null,
+                processing_status: "processed",
+              },
+            ],
+            totalCount: 1,
+          },
         });
 
       renderCampaignMessagesPage("1");
@@ -612,7 +653,7 @@ describe("CampaignMessagesPage", () => {
           },
         })
         .mockReturnValueOnce({
-          data: [],
+          data: { messages: [], totalCount: 0 },
         });
 
       renderCampaignMessagesPage("1");
