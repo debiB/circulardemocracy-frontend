@@ -11,6 +11,58 @@ vi.mock("@tanstack/react-query", () => ({
   useSuspenseQuery: () => mockUseSuspenseQuery(),
 }));
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-token' } }
+      })
+    }
+  }
+}));
+
+vi.mock("@/components/ui/button", () => ({
+  Button: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
+  ),
+}));
+
+vi.mock("@/components/ui/badge", () => ({
+  Badge: ({ children, variant, className, ...props }: any) => (
+    <span className={`badge badge-${variant} ${className || ''}`} {...props}>{children}</span>
+  ),
+}));
+
+vi.mock("@/components/ui/alert-dialog", () => ({
+  AlertDialog: ({ children, open, onOpenChange }: any) => (
+    <div data-open={open} onChange={onOpenChange}>{children}</div>
+  ),
+  AlertDialogContent: ({ children }: any) => (
+    <div role="dialog-content">{children}</div>
+  ),
+  AlertDialogHeader: ({ children }: any) => (
+    <div role="dialog-header">{children}</div>
+  ),
+  AlertDialogTitle: ({ children }: any) => (
+    <div role="dialog-title">{children}</div>
+  ),
+  AlertDialogTrigger: ({ children, onClick }: any) => (
+    <div onClick={onClick}>{children}</div>
+  ),
+}));
+
+vi.mock("@/components/TemplateForm", () => ({
+  TemplateForm: ({ initialData, onSuccess, onCancel }: any) => (
+    <div data-testid="template-form">
+      <div data-testid="template-form-data">
+        {JSON.stringify(initialData)}
+      </div>
+      <button onClick={onSuccess}>Success</button>
+      <button onClick={onCancel}>Cancel</button>
+    </div>
+  ),
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
@@ -69,7 +121,7 @@ describe("CampaignsPage", () => {
     expect(screen.getByText(/no campaigns found/i)).toBeInTheDocument();
   });
 
-  it("renders campaign rows with data", () => {
+  it("renders campaign rows with data including message counts and template status", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
@@ -77,12 +129,16 @@ describe("CampaignsPage", () => {
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: true,
+          messageCount: 25,
         },
         {
           id: "2",
           name: "Education Reform",
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
+          hasReplyTemplate: false,
+          messageCount: 0,
         },
       ],
     });
@@ -93,9 +149,23 @@ describe("CampaignsPage", () => {
     expect(screen.getByText("Education Reform")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+    
+    // Check message counts
+    expect(screen.getByText("25 messages")).toBeInTheDocument();
+    expect(screen.getByText("0 messages")).toBeInTheDocument();
+    
+    // Check template status
+    expect(screen.getByText("Template Exists")).toBeInTheDocument();
+    expect(screen.getByText("No Template")).toBeInTheDocument();
+    
+    // Check create template button appears for campaigns without templates
+    // Look for the three-dot button in the actions column for campaigns without templates
+    const buttons = screen.getAllByRole("button");
+    const ellipsisButton = buttons.find(btn => btn.querySelector("svg.lucide-ellipsis"));
+    expect(ellipsisButton).toBeInTheDocument();
   });
 
-  it("navigates to campaign messages page when a row is clicked", () => {
+  it("navigates to campaign messages page when a campaign data cell is clicked", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
@@ -103,18 +173,105 @@ describe("CampaignsPage", () => {
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: true,
+          messageCount: 10,
         },
       ],
     });
 
     renderCampaignsPage();
 
-    const campaignRow = screen.getByText("Climate Action").closest("tr");
-    expect(campaignRow).toBeInTheDocument();
-
-    fireEvent.click(campaignRow!);
+    const campaignNameCell = screen.getByText("Climate Action");
+    fireEvent.click(campaignNameCell);
 
     expect(mockNavigate).toHaveBeenCalledWith("/campaigns/42");
+  });
+
+  it("opens create template dialog when Create Reply Template button is clicked", () => {
+    mockUseSuspenseQuery.mockReturnValue({
+      data: [
+        {
+          id: "2",
+          name: "Education Reform",
+          created_at: "2024-02-01T00:00:00Z",
+          updated_at: "2024-02-02T00:00:00Z",
+          hasReplyTemplate: false,
+          messageCount: 0,
+        },
+      ],
+    });
+
+    renderCampaignsPage();
+
+    // First click the three-dot button to open the dropdown
+    const buttons = screen.getAllByRole("button");
+    const ellipsisButton = buttons.find(btn => btn.querySelector("svg.lucide-ellipsis"));
+    expect(ellipsisButton).toBeInTheDocument();
+    if (ellipsisButton) {
+      fireEvent.click(ellipsisButton);
+    }
+
+    // Then click the "Create Reply Template" menu item
+    // Use getByText instead of getByRole since dropdown items might not have role="menuitem"
+    const createTemplateMenuItem = screen.getByText(/create reply template/i);
+    fireEvent.click(createTemplateMenuItem);
+
+    // Check that the dialog opens and TemplateForm is rendered
+    expect(screen.getByTestId("template-form")).toBeInTheDocument();
+    expect(screen.getByRole("dialog-title")).toBeInTheDocument();
+    expect(screen.getByRole("dialog-title")).toHaveTextContent("Create Reply Template");
+    
+    // Check that the form is pre-populated with the campaign ID
+    const formData = screen.getByTestId("template-form-data");
+    expect(formData.textContent).toContain('"campaign_id":2');
+  });
+
+  it("does not show Create Reply Template button for campaigns with existing templates", () => {
+    mockUseSuspenseQuery.mockReturnValue({
+      data: [
+        {
+          id: "1",
+          name: "Climate Action",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: true,
+          messageCount: 25,
+        },
+      ],
+    });
+
+    renderCampaignsPage();
+
+    expect(screen.queryByRole("button", { name: /create reply template/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Template Exists")).toBeInTheDocument();
+  });
+
+  it("handles singular and plural message count display correctly", () => {
+    mockUseSuspenseQuery.mockReturnValue({
+      data: [
+        {
+          id: "1",
+          name: "Single Message",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: false,
+          messageCount: 1,
+        },
+        {
+          id: "2",
+          name: "Multiple Messages",
+          created_at: "2024-02-01T00:00:00Z",
+          updated_at: "2024-02-02T00:00:00Z",
+          hasReplyTemplate: false,
+          messageCount: 5,
+        },
+      ],
+    });
+
+    renderCampaignsPage();
+
+    expect(screen.getByText("1 message")).toBeInTheDocument();
+    expect(screen.getByText("5 messages")).toBeInTheDocument();
   });
 
   it("applies hover styles to campaign rows", () => {
@@ -125,6 +282,8 @@ describe("CampaignsPage", () => {
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: true,
+          messageCount: 10,
         },
       ],
     });

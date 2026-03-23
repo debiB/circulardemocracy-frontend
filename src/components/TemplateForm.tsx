@@ -130,32 +130,34 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Field>
-        <FieldLabel htmlFor="campaign_id">Campaign *</FieldLabel>
-        <Select
-          value={watch('campaign_id')?.toString()}
-          onValueChange={(value) => setValue('campaign_id', parseInt(value))}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a campaign" />
-          </SelectTrigger>
-          <SelectContent>
-            {campaigns.map((campaign) => (
-              <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                {campaign.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.campaign_id && <FieldError>{errors.campaign_id.message}</FieldError>}
-      </Field>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field>
+          <FieldLabel htmlFor="campaign_id">Campaign *</FieldLabel>
+          <Select
+            value={watch('campaign_id')?.toString()}
+            onValueChange={(value) => setValue('campaign_id', parseInt(value))}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              {campaigns.map((campaign) => (
+                <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                  {campaign.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.campaign_id && <FieldError>{errors.campaign_id.message}</FieldError>}
+        </Field>
 
-      <Input
-        label="Template Name *"
-        {...register('name', { required: 'Template name is required' })}
-        errorMessage={errors.name?.message}
-        placeholder="e.g., Standard Reply"
-      />
+        <Input
+          label="Template Name *"
+          {...register('name', { required: 'Template name is required' })}
+          errorMessage={errors.name?.message}
+          placeholder="e.g., Standard Reply"
+        />
+      </div>
 
       <Input
         label="Subject Line *"
