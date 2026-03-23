@@ -87,7 +87,7 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
       subject: initialData?.subject || '',
       body: initialData?.body || '',
       campaign_id: initialData?.campaign_id,
-      politician_id: initialData?.politician_id,
+      politician_id: initialData?.politician_id || 1, // TODO: Get actual politician_id from current user
       send_timing: initialData?.send_timing || 'immediate',
       scheduled_for: initialData?.scheduled_for || '',
       active: initialData?.active ?? true,
