@@ -5,12 +5,12 @@ import { PageLayout } from '@/components/PageLayout'; // Import PageLayout
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { TemplateForm } from '@/components/TemplateForm';
 import { Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, MoreHorizontal } from 'lucide-react';
+import { Plus, X, MoreHorizontal, Edit } from 'lucide-react';
 
 // A simple spinner component for fallback within the card
 const LoadingSpinner = () => (
@@ -74,6 +74,28 @@ async function fetchReplyTemplates(): Promise<ReplyTemplate[]> {
   return response.json();
 }
 
+async function fetchCampaignTemplate(campaignId: number): Promise<any> {
+  const { data: { session } } = await supabase!.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reply-templates?campaign_id=${campaignId}`, {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch template');
+  }
+
+  const templates = await response.json();
+  return templates.length > 0 ? templates[0] : null;
+}
+
 async function fetchCampaignMessageCounts(): Promise<Record<string, number>> {
   // Get message counts per campaign
   // Since Supabase doesn't support group() directly, we'll get all messages and count them
@@ -121,6 +143,8 @@ export function CampaignsPage() {
   const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
   
   const { data: campaigns } = useSuspenseQuery<CampaignWithExtras[], Error>({
     queryKey: ['campaigns-with-extras'],
@@ -201,8 +225,7 @@ export function CampaignsPage() {
                           )}
                         </td>
                         <td className="py-2 px-4 border-b">
-                          {!campaign.hasReplyTemplate && (
-                            <AlertDialog 
+                          <AlertDialog 
                             open={isCreateDialogOpen && selectedCampaignId === parseInt(campaign.id)} 
                             onOpenChange={(open) => {
                               setIsCreateDialogOpen(open);
@@ -221,16 +244,37 @@ export function CampaignsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-auto min-w-[160px]">
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedCampaignId(parseInt(campaign.id));
-                                    setIsCreateDialogOpen(true);
-                                  }}
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Create Reply Template
-                                </DropdownMenuItem>
+                                {!campaign.hasReplyTemplate && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCampaignId(parseInt(campaign.id));
+                                      setIsCreateDialogOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Reply Template
+                                  </DropdownMenuItem>
+                                )}
+                                {campaign.hasReplyTemplate && (
+                                  <DropdownMenuItem
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const template = await fetchCampaignTemplate(parseInt(campaign.id));
+                                        if (template) {
+                                          setEditingTemplate(template);
+                                          setIsEditDialogOpen(true);
+                                        }
+                                      } catch (error) {
+                                        console.error('Error fetching template:', error);
+                                      }
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Reply Template
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                             <AlertDialogContent className="!w-[90vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto">
@@ -263,7 +307,6 @@ export function CampaignsPage() {
                                 </Suspense>
                               </AlertDialogContent>
                             </AlertDialog>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -276,6 +319,51 @@ export function CampaignsPage() {
           </Suspense>
         </CardContent>
       </Card>
+      
+      {/* Edit Template Dialog */}
+      <AlertDialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) setEditingTemplate(null);
+      }}>
+        <AlertDialogContent className="!w-[90vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader className="flex flex-row items-center justify-between">
+            <AlertDialogTitle>Edit Reply Template</AlertDialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditingTemplate(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </AlertDialogHeader>
+          <AlertDialogDescription>
+            Edit the existing reply template for this campaign. Modify the subject, body, and other settings as needed.
+          </AlertDialogDescription>
+          <Suspense fallback={<LoadingSpinner />}>
+            {editingTemplate && (
+              <TemplateForm
+                initialData={{
+                  ...editingTemplate,
+                  send_timing: editingTemplate.send_timing || 'immediate',
+                  scheduled_for: editingTemplate.scheduled_for || undefined,
+                }}
+                onSuccess={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingTemplate(null);
+                }}
+                onCancel={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingTemplate(null);
+                }}
+              />
+            )}
+          </Suspense>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 }

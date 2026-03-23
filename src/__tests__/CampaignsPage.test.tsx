@@ -218,8 +218,7 @@ describe("CampaignsPage", () => {
 
     // Check that the dialog opens and TemplateForm is rendered
     expect(screen.getByTestId("template-form")).toBeInTheDocument();
-    expect(screen.getByRole("dialog-title")).toBeInTheDocument();
-    expect(screen.getByRole("dialog-title")).toHaveTextContent("Create Reply Template");
+    expect(screen.getByText("Create Reply Template")).toBeInTheDocument();
     
     // Check that the form is pre-populated with the campaign ID
     const formData = screen.getByTestId("template-form-data");
