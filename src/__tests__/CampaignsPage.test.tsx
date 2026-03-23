@@ -46,6 +46,9 @@ vi.mock("@/components/ui/alert-dialog", () => ({
   AlertDialogTitle: ({ children }: any) => (
     <div role="dialog-title">{children}</div>
   ),
+  AlertDialogDescription: ({ children }: any) => (
+    <div role="dialog-description">{children}</div>
+  ),
   AlertDialogTrigger: ({ children, onClick }: any) => (
     <div onClick={onClick}>{children}</div>
   ),
