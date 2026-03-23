@@ -8,6 +8,7 @@ import { CampaignMessagesPage } from "./pages/CampaignMessagesPage";
 import { UsersPage } from "./pages/UsersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { TemplatesPage } from "./pages/TemplatesPage";
 import { PageLayout } from "@/components/PageLayout";
 import { Suspense } from "react";
 
@@ -100,6 +101,20 @@ export function App() {
                 }
               >
                 <UsersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <Suspense
+                fallback={
+                  <PageLayout centerContent={true}>
+                    <LoadingSpinner />
+                  </PageLayout>
+                }
+              >
+                <TemplatesPage />
               </Suspense>
             }
           />
