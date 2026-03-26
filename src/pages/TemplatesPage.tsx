@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TemplateForm } from '@/components/TemplateForm';
 import { Suspense, useState } from 'react';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, X } from 'lucide-react';
 import { getTimingDisplayLabel } from '@/components/SendTimingSelector';
 
 const LoadingSpinner = () => (
@@ -163,9 +163,17 @@ function TemplatesList() {
       )}
       
       <AlertDialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
-        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader>
+        <AlertDialogContent className="!w-[90vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader className="flex flex-row items-center justify-between">
             <AlertDialogTitle>Edit Template</AlertDialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setEditingTemplate(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </AlertDialogHeader>
           {editingTemplate && (
             <Suspense fallback={<LoadingSpinner />}>
@@ -207,9 +215,17 @@ export function TemplatesPage() {
                 Create Template
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <AlertDialogHeader>
+            <AlertDialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <AlertDialogHeader className="flex flex-row items-center justify-between">
                 <AlertDialogTitle>Create New Template</AlertDialogTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </AlertDialogHeader>
               <Suspense fallback={<LoadingSpinner />}>
                 <TemplateForm

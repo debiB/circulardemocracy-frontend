@@ -88,6 +88,8 @@ vi.mock("@/components/TemplateForm", () => ({
 vi.mock("lucide-react", () => ({
   Plus: () => <span>Plus Icon</span>,
   Edit: () => <span>Edit Icon</span>,
+  X: () => <span>X Icon</span>,
+  MoreHorizontal: () => <span>More Icon</span>,
 }));
 
 global.fetch = mockFetch;

@@ -46,6 +46,8 @@ async function createTemplate(templateData: Omit<TemplateFormData, 'active'>): P
     throw new Error('Not authenticated');
   }
 
+  console.log('Template data sent:', templateData);
+
   const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reply-templates`, {
     method: 'POST',
     headers: {
@@ -56,11 +58,68 @@ async function createTemplate(templateData: Omit<TemplateFormData, 'active'>): P
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || 'Failed to create template');
+    const errorText = await response.text();
+    console.error('API Error Response:', errorText);
+    throw new Error(errorText || 'Failed to create template');
   }
 
-  return response.json();
+  const responseText = await response.text();
+  console.log('API Response:', responseText);
+  
+  if (!responseText) {
+    throw new Error('Empty response from server');
+  }
+  
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('JSON Parse Error:', error);
+    console.error('Response text:', responseText);
+    console.error('Response status:', response.status);
+    console.error('Response headers:', response.headers);
+    throw new Error(`Invalid JSON response from server. Status: ${response.status}, Response: ${responseText}`);
+  }
+}
+
+async function updateTemplate(id: number, templateData: Partial<Omit<TemplateFormData, 'active'>>): Promise<any> {
+  const { data: { session } } = await supabase!.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  console.log('Updating template:', id, templateData);
+
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reply-templates/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(templateData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API Error Response:', errorText);
+    throw new Error(errorText || 'Failed to update template');
+  }
+
+  const responseText = await response.text();
+  console.log('API Response:', responseText);
+  
+  if (!responseText) {
+    throw new Error('Empty response from server');
+  }
+  
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('JSON Parse Error:', error);
+    console.error('Response text:', responseText);
+    console.error('Response status:', response.status);
+    throw new Error(`Invalid JSON response from server. Status: ${response.status}, Response: ${responseText}`);
+  }
 }
 
 export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormProps) {
@@ -87,7 +146,7 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
       subject: initialData?.subject || '',
       body: initialData?.body || '',
       campaign_id: initialData?.campaign_id,
-      politician_id: initialData?.politician_id,
+      politician_id: initialData?.politician_id || 1, // TODO: Get actual politician_id from current user
       send_timing: initialData?.send_timing || 'immediate',
       scheduled_for: initialData?.scheduled_for || '',
       active: initialData?.active ?? true,
@@ -98,27 +157,39 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
     mutationFn: createTemplate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reply-templates'] });
-      toast.success(isEditMode ? 'Template updated successfully' : 'Template created successfully');
+      toast.success('Template created successfully');
       onSuccess?.();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to save template');
+      toast.error(error.message || 'Failed to create template');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: number; templateData: Partial<Omit<TemplateFormData, 'active'>> }) => 
+      updateTemplate(data.id, data.templateData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reply-templates'] });
+      toast.success('Template updated successfully');
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update template');
     },
   });
 
   const onSubmit = async (data: TemplateFormData) => {
-    if (isEditMode) {
-      toast.error('Update endpoint not available - only create is supported');
-      return;
-    }
-
     const { active, ...templateData } = data;
     
     if (data.send_timing !== 'scheduled') {
       delete templateData.scheduled_for;
     }
 
-    await createMutation.mutateAsync(templateData);
+    if (isEditMode && initialData?.id) {
+      await updateMutation.mutateAsync({ id: initialData.id, templateData });
+    } else {
+      await createMutation.mutateAsync(templateData);
+    }
   };
 
   const activeValue = watch('active');
@@ -130,32 +201,34 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Field>
-        <FieldLabel htmlFor="campaign_id">Campaign *</FieldLabel>
-        <Select
-          value={watch('campaign_id')?.toString()}
-          onValueChange={(value) => setValue('campaign_id', parseInt(value))}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a campaign" />
-          </SelectTrigger>
-          <SelectContent>
-            {campaigns.map((campaign) => (
-              <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                {campaign.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.campaign_id && <FieldError>{errors.campaign_id.message}</FieldError>}
-      </Field>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field>
+          <FieldLabel htmlFor="campaign_id">Campaign *</FieldLabel>
+          <Select
+            value={watch('campaign_id')?.toString()}
+            onValueChange={(value) => setValue('campaign_id', parseInt(value))}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              {campaigns.map((campaign) => (
+                <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                  {campaign.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.campaign_id && <FieldError>{errors.campaign_id.message}</FieldError>}
+        </Field>
 
-      <Input
-        label="Template Name *"
-        {...register('name', { required: 'Template name is required' })}
-        errorMessage={errors.name?.message}
-        placeholder="e.g., Standard Reply"
-      />
+        <Input
+          label="Template Name *"
+          {...register('name', { required: 'Template name is required' })}
+          errorMessage={errors.name?.message}
+          placeholder="e.g., Standard Reply"
+        />
+      </div>
 
       <Input
         label="Subject Line *"
@@ -238,8 +311,8 @@ export function TemplateForm({ initialData, onSuccess, onCancel }: TemplateFormP
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-          {isSubmitting || createMutation.isPending
+        <Button type="submit" disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}>
+          {isSubmitting || createMutation.isPending || updateMutation.isPending
             ? 'Saving...'
             : isEditMode
             ? 'Update Template'
