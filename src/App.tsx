@@ -9,6 +9,7 @@ import { UsersPage } from "./pages/UsersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { PageLayout } from "@/components/PageLayout";
 import { Suspense } from "react";
 
@@ -118,6 +119,7 @@ export function App() {
               </Suspense>
             }
           />
+          <Route path="/analytics" element={<AnalyticsPage />} />
         </Route>
 
         <Route element={<PublicRoute />}>
