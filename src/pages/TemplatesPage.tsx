@@ -40,42 +40,61 @@ interface TemplateWithCampaign extends ReplyTemplate {
 }
 
 async function fetchReplyTemplates(): Promise<TemplateWithCampaign[]> {
-  const { data: { session } } = await supabase!.auth.getSession();
-  
-  if (!session) {
-    throw new Error('Not authenticated');
+  try {
+    const { data: { session } } = await supabase!.auth.getSession();
+    
+    if (!session) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reply-templates`, {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch reply templates');
+    }
+
+    const templates: ReplyTemplate[] = await response.json();
+    
+    // Defensive check: ensure templates is an array
+    if (!templates || !Array.isArray(templates)) {
+      console.error('Invalid templates data received');
+      return [];
+    }
+    
+    // Extract campaign IDs safely
+    const campaignIds = [...new Set(templates.filter(t => t?.campaign_id != null).map(t => t.campaign_id))];
+    
+    // Only fetch campaigns if we have IDs
+    if (campaignIds.length === 0) {
+      return templates.map(template => ({ ...template, campaign: undefined }));
+    }
+    
+    const { data: campaigns, error } = await supabase!
+      .from('campaigns')
+      .select('id, name')
+      .in('id', campaignIds);
+
+    if (error) {
+      console.error('Error fetching campaigns:', error);
+      // Continue without campaign data rather than failing completely
+      return templates.map(template => ({ ...template, campaign: undefined }));
+    }
+
+    const campaignMap = new Map(campaigns?.map(c => [c.id, c]) || []);
+    
+    return templates.map(template => ({
+      ...template,
+      campaign: template?.campaign_id ? campaignMap.get(template.campaign_id) : undefined,
+    }));
+  } catch (error) {
+    console.error('Error fetching reply templates:', error);
+    throw error; // Re-throw for error boundary
   }
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reply-templates`, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch reply templates');
-  }
-
-  const templates: ReplyTemplate[] = await response.json();
-  
-  const campaignIds = [...new Set(templates.map(t => t.campaign_id))];
-  
-  const { data: campaigns, error } = await supabase!
-    .from('campaigns')
-    .select('id, name')
-    .in('id', campaignIds);
-
-  if (error) {
-    throw error;
-  }
-
-  const campaignMap = new Map(campaigns?.map(c => [c.id, c]) || []);
-  
-  return templates.map(template => ({
-    ...template,
-    campaign: campaignMap.get(template.campaign_id),
-  }));
 }
 
 
@@ -86,7 +105,11 @@ function TemplatesList() {
     queryFn: fetchReplyTemplates,
   });
 
-  const groupedByCampaign = templates.reduce((acc, template) => {
+  // Defensive grouping with null checks
+  const groupedByCampaign = (templates || []).reduce((acc, template) => {
+    if (!template || template.campaign_id == null) {
+      return acc; // Skip invalid templates
+    }
     const campaignId = template.campaign_id;
     if (!acc[campaignId]) {
       acc[campaignId] = {

@@ -35,16 +35,26 @@ interface Message {
 }
 
 async function fetchCampaign(campaignId: string): Promise<Campaign> {
-  const { data, error } = await supabase!
-    .from('campaigns')
-    .select('id, name, slug, description, status')
-    .eq('id', campaignId)
-    .single();
+  try {
+    const { data, error } = await supabase!
+      .from('campaigns')
+      .select('id, name, slug, description, status')
+      .eq('id', campaignId)
+      .single();
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+    
+    if (!data) {
+      throw new Error('Campaign not found');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching campaign:', error);
+    throw error; // Re-throw for error boundary
   }
-  return data;
 }
 
 async function fetchCampaignMessages(
@@ -53,52 +63,62 @@ async function fetchCampaignMessages(
   page: number = 1,
   pageSize: number = 50
 ): Promise<{ messages: Message[]; totalCount: number }> {
-  // Pagination implemented using .range() for efficient data retrieval
-  // Page size set to 50 as reasonable default
-  // Returns both messages and total count for pagination UI
-  
-  const offset = (page - 1) * pageSize;
-  
-  // Get total count first
-  let countQuery = supabase!
-    .from('messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('campaign_id', campaignId);
+  try {
+    // Pagination implemented using .range() for efficient data retrieval
+    // Page size set to 50 as reasonable default
+    // Returns both messages and total count for pagination UI
     
-  if (filterLowConfidence) {
-    countQuery = countQuery.lt('classification_confidence', 0.7);
-  }
-  
-  const { count: totalCount, error: countError } = await countQuery;
-  
-  if (countError) {
-    throw countError;
-  }
-  
-  // Get paginated messages
-  let query = supabase!
-    .from('messages')
-    .select('id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status')
-    .eq('campaign_id', campaignId)
-    .range(offset, offset + pageSize - 1)
-    .order('received_at', { ascending: false });
+    const offset = (page - 1) * pageSize;
+    
+    // Get total count first
+    let countQuery = supabase!
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId);
+      
+    if (filterLowConfidence) {
+      countQuery = countQuery.lt('classification_confidence', 0.7);
+    }
+    
+    const { count: totalCount, error: countError } = await countQuery;
+    
+    if (countError) {
+      console.error('Error fetching message count:', countError);
+      throw countError;
+    }
+    
+    // Get paginated messages
+    let query = supabase!
+      .from('messages')
+      .select('id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status')
+      .eq('campaign_id', campaignId)
+      .range(offset, offset + pageSize - 1)
+      .order('received_at', { ascending: false });
 
-  // Backend-driven filtering: Apply confidence filter if needed
-  if (filterLowConfidence) {
-    // TODO: Define threshold for "low confidence" - using 0.7 as placeholder
-    query = query.lt('classification_confidence', 0.7);
-  }
+    // Backend-driven filtering: Apply confidence filter if needed
+    if (filterLowConfidence) {
+      // TODO: Define threshold for "low confidence" - using 0.7 as placeholder
+      query = query.lt('classification_confidence', 0.7);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw error;
+    if (error) {
+      console.error('Error fetching messages:', error);
+      throw error;
+    }
+    
+    // Defensive check: ensure data is an array
+    const messages = data && Array.isArray(data) ? data : [];
+    
+    return { 
+      messages, 
+      totalCount: totalCount ?? 0 
+    };
+  } catch (error) {
+    console.error('Error in fetchCampaignMessages:', error);
+    throw error; // Re-throw for error boundary
   }
-  
-  return { 
-    messages: data || [], 
-    totalCount: totalCount || 0 
-  };
 }
 
 export function CampaignMessagesPage() {
@@ -161,6 +181,17 @@ export function CampaignMessagesPage() {
   // Privacy-safe: No sender information included
   const handleExport = async () => {
     try {
+      // Defensive: ensure messages and campaign exist
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        alert('No messages to export');
+        return;
+      }
+      
+      if (!campaign?.name) {
+        alert('Campaign information not available');
+        return;
+      }
+      
       // Fetch all messages for export (no pagination)
       const allMessagesData = await fetchCampaignMessages(id, hasReplyTemplate, 1, 10000);
       const allMessages = allMessagesData.messages;
@@ -171,16 +202,16 @@ export function CampaignMessagesPage() {
       }
       
       // Create CSV content
-      const headers = ['Country', 'Received', 'Confidence', 'Duplicate', 'Language', 'Status', 'Reply Sent'];
+      const headers = ['ID', 'Country', 'Confidence', 'Duplicate Rank', 'Language', 'Status', 'Reply Sent At'];
       const csvContent = [
         headers.join(','),
-        ...allMessages.map(message => [
-          message.sender_country || '',
-          message.received_at,
-          `${(message.classification_confidence * 100).toFixed(1)}%`,
-          message.duplicate_rank === 0 ? 'Original' : `Dup #${message.duplicate_rank}`,
-          message.language,
-          message.processing_status,
+        ...allMessages.filter(m => m != null).map(message => [
+          message.id ?? '',
+          message.sender_country || 'Unknown',
+          message.classification_confidence != null ? `${(message.classification_confidence * 100).toFixed(1)}%` : 'N/A',
+          message.duplicate_rank === 0 ? 'Original' : `Dup #${message.duplicate_rank ?? 'N/A'}`,
+          message.language || 'Unknown',
+          message.processing_status || 'Unknown',
           message.reply_sent_at || ''
         ].map(field => `"${field}"`).join(','))
       ].join('\n');
@@ -216,7 +247,9 @@ export function CampaignMessagesPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedMessages(new Set(messages.map(m => m.id)));
+      // Defensive: ensure messages is an array and filter out invalid entries
+      const validMessageIds = (messages || []).filter(m => m?.id != null).map(m => m.id);
+      setSelectedMessages(new Set(validMessageIds));
     } else {
       setSelectedMessages(new Set());
     }
