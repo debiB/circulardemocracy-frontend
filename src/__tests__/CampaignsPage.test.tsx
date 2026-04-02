@@ -9,6 +9,9 @@ const mockNavigate = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useSuspenseQuery: () => mockUseSuspenseQuery(),
+  useQueryClient: () => ({
+    invalidateQueries: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -157,15 +160,15 @@ describe("CampaignsPage", () => {
     expect(screen.getByText("25 messages")).toBeInTheDocument();
     expect(screen.getByText("0 messages")).toBeInTheDocument();
     
-    // Check template status
+    // Check template status badges are clickable
     expect(screen.getByText("Template Exists")).toBeInTheDocument();
     expect(screen.getByText("No Template")).toBeInTheDocument();
     
-    // Check create template button appears for campaigns without templates
-    // Look for the three-dot button in the actions column for campaigns without templates
-    const buttons = screen.getAllByRole("button");
-    const ellipsisButton = buttons.find(btn => btn.querySelector("svg.lucide-ellipsis"));
-    expect(ellipsisButton).toBeInTheDocument();
+    // Verify badges are present (no Actions column anymore)
+    const templateExistsBadge = screen.getByText("Template Exists").closest(".badge");
+    const noTemplateBadge = screen.getByText("No Template").closest(".badge");
+    expect(templateExistsBadge).toBeInTheDocument();
+    expect(noTemplateBadge).toBeInTheDocument();
   });
 
   it("navigates to campaign messages page when a campaign data cell is clicked", () => {
@@ -190,7 +193,7 @@ describe("CampaignsPage", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/campaigns/42");
   });
 
-  it("opens create template dialog when Create Reply Template button is clicked", () => {
+  it("opens create template dialog when No Template badge is clicked", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
@@ -206,18 +209,9 @@ describe("CampaignsPage", () => {
 
     renderCampaignsPage();
 
-    // First click the three-dot button to open the dropdown
-    const buttons = screen.getAllByRole("button");
-    const ellipsisButton = buttons.find(btn => btn.querySelector("svg.lucide-ellipsis"));
-    expect(ellipsisButton).toBeInTheDocument();
-    if (ellipsisButton) {
-      fireEvent.click(ellipsisButton);
-    }
-
-    // Then click the "Create Reply Template" menu item
-    // Use getByText instead of getByRole since dropdown items might not have role="menuitem"
-    const createTemplateMenuItem = screen.getByText(/create reply template/i);
-    fireEvent.click(createTemplateMenuItem);
+    // Click the "No Template" badge to open create dialog
+    const noTemplateBadge = screen.getByText("No Template");
+    fireEvent.click(noTemplateBadge);
 
     // Check that the dialog opens and TemplateForm is rendered
     expect(screen.getByTestId("template-form")).toBeInTheDocument();
