@@ -51,6 +51,13 @@ export function Navbar() {
           </NavigationMenuItem>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
+              <Link to="/analytics" className="font-medium text-gray-700 hover:text-gray-900">
+                Analytics
+              </Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
               <Link to="/profile" className="font-medium text-gray-700 hover:text-gray-900">
                 Profile
               </Link>
