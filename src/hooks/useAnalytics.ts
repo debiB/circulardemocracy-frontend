@@ -28,18 +28,26 @@ interface AnalyticsItem {
 }
 
 async function fetchAnalytics(): Promise<AnalyticsData> {
-  const { data: { session } } = await supabase!.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase!.auth.getSession();
 
   if (!session) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
   try {
+    //const { data: analytics, error } = await supabase!
+    //  .rpc('get_message_analytics_daily', { days_back: 7 });
+
     const { data: analytics, error } = await supabase!
-      .rpc('get_message_analytics_daily', { days_back: 7 });
+      .from("daily_message_analytics")
+      .select("*");
+
+    console.log(analytics);
 
     if (error) {
-      console.warn('Analytics RPC returned error:', error);
+      console.error("analytics returned error:", error);
       return {
         totalMessages: 0,
         repliesSent: 0,
@@ -94,7 +102,10 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
     // Convert to array format for messagesByDay
     const messagesByDay = Array.from(dailyByCampaignMap.entries())
       .map(([date, campaigns]) => {
-        const totalForDay = Array.from(campaigns.values()).reduce((sum, count) => sum + count, 0);
+        const totalForDay = Array.from(campaigns.values()).reduce(
+          (sum, count) => sum + count,
+          0,
+        );
         return { date, count: totalForDay };
       })
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -124,7 +135,7 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
       dailyCampaignData,
     };
   } catch (error) {
-    console.warn('Failed to fetch analytics, returning empty data:', error);
+    console.warn("Failed to fetch analytics, returning empty data:", error);
     return {
       totalMessages: 0,
       repliesSent: 0,
