@@ -1,0 +1,114 @@
+// Generated Supabase types - Cache bust: 1776100500000
+export type Database = {
+    public: {
+        Tables: {
+            politicians: {
+                Row: {
+                    id: number;
+                    external_id: string | null;
+                    email: string;
+                    additional_emails: string[] | null;
+                    name: string;
+                    party: string | null;
+                    country: string | null;
+                    region: string | null;
+                    level: string | null;
+                    position: string | null;
+                    active: boolean;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['politicians']['Row'], 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Database['public']['Tables']['politicians']['Insert']>;
+            };
+            campaigns: {
+                Row: {
+                    id: number;
+                    name: string;
+                    slug: string;
+                    description: string | null;
+                    keywords: string[] | null;
+                    reference_vector: number[] | null;
+                    vector_updated_at: string | null;
+                    status: string;
+                    created_by: string;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['campaigns']['Row'], 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Database['public']['Tables']['campaigns']['Insert']>;
+            };
+            messages: {
+                Row: {
+                    id: number;
+                    external_id: string;
+                    channel: string;
+                    channel_source: string | null;
+                    politician_id: number;
+                    sender_hash: string;
+                    sender_country: string | null;
+                    campaign_id: number | null;
+                    classification_confidence: number | null;
+                    message_embedding: number[] | null;
+                    language: string | null;
+                    received_at: string;
+                    processed_at: string;
+                    duplicate_rank: number;
+                    processing_status: string;
+                    reply_sent_at: string | null;
+                    reply_template_id: number | null;
+                };
+                Insert: Omit<Database['public']['Tables']['messages']['Row'], 'id' | 'processed_at'>;
+                Update: Partial<Database['public']['Tables']['messages']['Insert']>;
+            };
+            reply_templates: {
+                Row: {
+                    id: number;
+                    politician_id: number;
+                    campaign_id: number;
+                    name: string;
+                    subject: string;
+                    body: string;
+                    active: boolean;
+                    send_timing: string;
+                    scheduled_for: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['reply_templates']['Row'], 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Database['public']['Tables']['reply_templates']['Insert']>;
+            };
+        };
+        Views: {
+            [_ in never]: never;
+        };
+        Functions: {
+            find_politician_by_email: {
+                Args: { email_address: string };
+                Returns: number;
+            };
+            cleanup_unconfirmed_campaigns: {
+                Args: Record<PropertyKey, never>;
+                Returns: number;
+            };
+            find_similar_campaigns: {
+                Args: {
+                    query_embedding: number[];
+                    similarity_threshold?: number;
+                    match_limit?: number;
+                };
+                Returns: {
+                    id: number;
+                    name: string;
+                    slug: string;
+                    status: string;
+                    reference_vector: number[] | null;
+                    similarity: number;
+                }[];
+            };
+        };
+        Enums: {
+            [_ in never]: never;
+        };
+    };
+};

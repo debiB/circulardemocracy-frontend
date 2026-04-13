@@ -21,11 +21,17 @@ const LoadingSpinner = () => (
 );
 
 interface Campaign {
-  id: string;
+  id: number;
   name: string;
+  slug: string;
+  description: string | null;
+  keywords: string[] | null;
+  reference_vector: number[] | null;
+  vector_updated_at: string | null;
+  status: string;
+  created_by: string;
   created_at: string;
-  updated_at: string; // Assuming 'updated_at' for modified_at
-  // Add other campaign properties as needed
+  updated_at: string;
 }
 
 interface CampaignWithExtras extends Campaign {
@@ -75,25 +81,31 @@ async function fetchTemplateById(templateId: number): Promise<any> {
   return response.json();
 }
 
-async function fetchCampaignMessageCounts(): Promise<Record<string, number>> {
+async function fetchCampaignMessageCounts(): Promise<Record<number, number>> {
   try {
-    // Get message counts per campaign
-    // Since Supabase doesn't support group() directly, we'll get all messages and count them
+    // Get authenticated session
+    const { data: { session } } = await supabase!.auth.getSession();
+    
+    if (!session) {
+      return {};
+    }
+    
+    // Use authenticated Supabase client to get message counts per campaign
     const { data: allMessages, error: messagesError } = await supabase!
       .from('messages')
-      .select('campaign_id');
+      .select('campaign_id')
+      .limit(1000);
       
     if (messagesError) {
-      console.error('Error fetching message counts:', messagesError);
       return {}; // Return empty counts instead of throwing
     }
     
     // Count messages per campaign
-    const counts: Record<string, number> = {};
+    const counts: Record<number, number> = {};
     if (allMessages && Array.isArray(allMessages)) {
       allMessages.forEach(message => {
         if (message?.campaign_id != null) {
-          const campaignId = message.campaign_id.toString();
+          const campaignId = message.campaign_id; // Keep as number
           counts[campaignId] = (counts[campaignId] || 0) + 1;
         }
       });
@@ -101,7 +113,6 @@ async function fetchCampaignMessageCounts(): Promise<Record<string, number>> {
     
     return counts;
   } catch (error) {
-    console.error('Unexpected error fetching message counts:', error);
     return {}; // Return empty counts on error
   }
 }
@@ -133,12 +144,14 @@ async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
     
     // Combine the data with defensive checks
     return campaigns.map(campaign => {
-      const templateId = campaign?.id ? templateMap.get(parseInt(campaign.id)) : undefined;
+      const templateId = campaign?.id ? templateMap.get(campaign.id) : undefined;
+      const messageCount = campaign?.id ? (messageCounts[campaign.id] || 0) : 0;
+      
       return {
         ...campaign,
         hasReplyTemplate: !!templateId,
         templateId,
-        messageCount: campaign?.id ? (messageCounts[campaign.id] || 0) : 0
+        messageCount
       };
     });
   } catch (error) {
@@ -247,7 +260,7 @@ export function CampaignsPage() {
                               className="text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedCampaignId(parseInt(campaign.id));
+                                setSelectedCampaignId(campaign.id);
                                 setIsCreateDialogOpen(true);
                               }}
                             >
