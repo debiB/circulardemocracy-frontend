@@ -20,6 +20,80 @@ interface AnalyticsData {
   }>;
 }
 
+interface AnalyticsDailyRow {
+  date: string;
+  campaign_id: number | null;
+  campaign_name: string | null;
+  message_count: number;
+}
+
+const emptyAnalytics = (): AnalyticsData => ({
+  totalMessages: 0,
+  repliesSent: 0,
+  pendingReplies: 0,
+  messagesByDay: [],
+  messagesByCampaign: [],
+  dailyCampaignData: [],
+});
+
+function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
+  if (!rows.length) {
+    return emptyAnalytics();
+  }
+
+  const byDay = new Map<string, number>();
+  const byCampaign = new Map<number, { campaignName: string; count: number }>();
+  const byDayCampaign = new Map<string, Record<string, number>>();
+
+  for (const row of rows) {
+    const count = Number(row.message_count || 0);
+    const date = row.date.slice(0, 10);
+    const campaignId = row.campaign_id;
+    const campaignName = row.campaign_name ?? "Unknown";
+
+    byDay.set(date, (byDay.get(date) ?? 0) + count);
+
+    if (campaignId !== null) {
+      const currentCampaign = byCampaign.get(campaignId);
+      byCampaign.set(campaignId, {
+        campaignName,
+        count: (currentCampaign?.count ?? 0) + count,
+      });
+    }
+
+    const dailyCampaigns = byDayCampaign.get(date) ?? {};
+    dailyCampaigns[campaignName] = (dailyCampaigns[campaignName] ?? 0) + count;
+    byDayCampaign.set(date, dailyCampaigns);
+  }
+
+  const messagesByDay = Array.from(byDay.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+
+  const messagesByCampaign = Array.from(byCampaign.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([campaignId, { campaignName, count }]) => ({
+      campaignId,
+      campaignName,
+      count,
+    }));
+
+  const dailyCampaignData = Array.from(byDayCampaign.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, campaigns]) => ({ date, campaigns }));
+
+  const totalMessages = messagesByDay.reduce((sum, row) => sum + row.count, 0);
+
+  return {
+    totalMessages,
+    repliesSent: 0,
+    pendingReplies: totalMessages,
+    messagesByDay,
+    messagesByCampaign,
+    dailyCampaignData,
+  };
+}
+
 async function fetchAnalytics(): Promise<AnalyticsData> {
   const {
     data: { session },
@@ -30,52 +104,24 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
   }
 
   try {
-    const { data: summary, error } = await supabase!
-      .from("message_analytics_summary")
-      .select("total_messages, replies_sent, pending_replies, messages_by_day, messages_by_campaign, daily_campaign_data")
-      .single();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase!
+      .from("message_analytics_view")
+      .select("date, campaign_id, campaign_name, message_count")
+      .gte("date", sevenDaysAgo.toISOString())
+      .order("date", { ascending: true });
 
     if (error) {
-      console.error("analytics summary returned error:", error);
-      return {
-        totalMessages: 0,
-        repliesSent: 0,
-        pendingReplies: 0,
-        messagesByDay: [],
-        messagesByCampaign: [],
-        dailyCampaignData: [],
-      };
+      console.error("analytics query returned error:", error);
+      return emptyAnalytics();
     }
 
-    if (!summary) {
-      return {
-        totalMessages: 0,
-        repliesSent: 0,
-        pendingReplies: 0,
-        messagesByDay: [],
-        messagesByCampaign: [],
-        dailyCampaignData: [],
-      };
-    }
-
-    return {
-      totalMessages: summary.total_messages ?? 0,
-      repliesSent: summary.replies_sent ?? 0,
-      pendingReplies: summary.pending_replies ?? 0,
-      messagesByDay: summary.messages_by_day ?? [],
-      messagesByCampaign: summary.messages_by_campaign ?? [],
-      dailyCampaignData: summary.daily_campaign_data ?? [],
-    };
+    return buildAnalytics((data ?? []) as AnalyticsDailyRow[]);
   } catch (error) {
     console.warn("Failed to fetch analytics, returning empty data:", error);
-    return {
-      totalMessages: 0,
-      repliesSent: 0,
-      pendingReplies: 0,
-      messagesByDay: [],
-      messagesByCampaign: [],
-      dailyCampaignData: [],
-    };
+    return emptyAnalytics();
   }
 }
 

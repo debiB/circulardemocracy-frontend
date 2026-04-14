@@ -14,12 +14,13 @@ import { MessageLineChart, type MessageLineChartData } from "@/components/charts
 // MOCKS
 // =============================================================================
 
-const { mockGetSession, mockAnalyticsSingle, mockAnalyticsFrom } = vi.hoisted(() => {
+const { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom } = vi.hoisted(() => {
   const mockGetSession = vi.fn();
-  const mockAnalyticsSingle = vi.fn();
-  const mockAnalyticsSelect = vi.fn(() => ({ single: mockAnalyticsSingle }));
+  const mockAnalyticsOrder = vi.fn();
+  const mockAnalyticsGte = vi.fn(() => ({ order: mockAnalyticsOrder }));
+  const mockAnalyticsSelect = vi.fn(() => ({ gte: mockAnalyticsGte }));
   const mockAnalyticsFrom = vi.fn(() => ({ select: mockAnalyticsSelect }));
-  return { mockGetSession, mockAnalyticsSingle, mockAnalyticsFrom };
+  return { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom };
 });
 
 vi.mock("@/lib/supabase", () => ({
@@ -59,23 +60,12 @@ vi.mock("@/components/ui/card", () => ({
 // TEST DATA
 // =============================================================================
 
-const mockBackendResponse = {
-  total_messages: 150,
-  replies_sent: 0,
-  pending_replies: 150,
-  messages_by_day: [
-    { date: "2026-03-31", count: 90 },
-    { date: "2026-04-01", count: 60 },
-  ],
-  messages_by_campaign: [
-    { campaignId: 1, campaignName: "Campaign A", count: 80 },
-    { campaignId: 2, campaignName: "Campaign B", count: 70 },
-  ],
-  daily_campaign_data: [
-    { date: "2026-03-31", campaigns: { "Campaign A": 55, "Campaign B": 35 } },
-    { date: "2026-04-01", campaigns: { "Campaign A": 25, "Campaign B": 35 } },
-  ],
-};
+const mockBackendResponse = [
+  { date: "2026-03-31", campaign_id: 1, campaign_name: "Campaign A", message_count: 55 },
+  { date: "2026-03-31", campaign_id: 2, campaign_name: "Campaign B", message_count: 35 },
+  { date: "2026-04-01", campaign_id: 1, campaign_name: "Campaign A", message_count: 25 },
+  { date: "2026-04-01", campaign_id: 2, campaign_name: "Campaign B", message_count: 35 },
+];
 
 const expectedAnalyticsData = {
   totalMessages: 150,
@@ -136,7 +126,7 @@ describe("useAnalytics Hook", () => {
       },
     });
 
-    mockAnalyticsSingle.mockResolvedValue({
+    mockAnalyticsOrder.mockResolvedValue({
       data: mockBackendResponse,
       error: null,
     });
@@ -156,7 +146,7 @@ describe("useAnalytics Hook", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data).toEqual(expectedAnalyticsData);
-    expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_summary");
+    expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_view");
   });
 
   it("handles loading state", () => {
@@ -181,7 +171,7 @@ describe("useAnalytics Hook", () => {
   });
 
   it("handles error when API request fails", async () => {
-    mockAnalyticsSingle.mockResolvedValue({
+    mockAnalyticsOrder.mockResolvedValue({
       data: null,
       error: new Error("query failed"),
     });
@@ -201,7 +191,7 @@ describe("useAnalytics Hook", () => {
   });
 
   it("handles network errors gracefully", async () => {
-    mockAnalyticsSingle.mockRejectedValueOnce(new Error("Network error"));
+    mockAnalyticsOrder.mockRejectedValueOnce(new Error("Network error"));
 
     const { result } = renderHook(() => useAnalytics(), { wrapper });
 
@@ -240,7 +230,7 @@ describe("useAnalytics Hook", () => {
       },
     });
 
-    mockAnalyticsSingle.mockResolvedValueOnce({
+    mockAnalyticsOrder.mockResolvedValueOnce({
       data: mockBackendResponse,
       error: null,
     });
@@ -252,7 +242,7 @@ describe("useAnalytics Hook", () => {
     });
 
     expect(mockGetSession).toHaveBeenCalled();
-    expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_summary");
+    expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_view");
   });
 });
 
