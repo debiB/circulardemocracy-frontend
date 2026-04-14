@@ -1,6 +1,5 @@
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils'; // Import the new utility
 import { PageLayout } from '@/components/PageLayout'; // Import PageLayout
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
@@ -34,113 +33,54 @@ interface CampaignWithExtras extends Campaign {
   messageCount: number;
 }
 
-interface ReplyTemplate {
+interface ReplyTemplateDetails {
   id: number;
+  politician_id: number;
   campaign_id: number;
   name: string;
   subject: string;
   body: string;
   active: boolean;
-  send_timing: string;
+  send_timing: 'immediate' | 'office_hours' | 'scheduled';
   scheduled_for: string | null;
   created_at: string;
   updated_at: string;
 }
 
-async function fetchCampaigns(): Promise<Campaign[]> {
-  const { data, error } = await supabase!.from('campaigns').select('*');
-  if (error) {
-    throw error; // Throw error for Suspense ErrorBoundary
-  }
-  return data;
-}
+async function fetchTemplateById(templateId: number): Promise<ReplyTemplateDetails> {
+  const { data, error } = await supabase!
+    .from('reply_templates_with_campaign')
+    .select('id, politician_id, campaign_id, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at')
+    .eq('id', templateId)
+    .single();
 
-async function fetchReplyTemplates(): Promise<ReplyTemplate[]> {
-  const response = await api.get('/api/v1/reply-templates');
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch reply templates');
+  if (error || !data) {
+    throw error ?? new Error('Failed to fetch template');
   }
 
-  return response.json();
-}
-
-async function fetchTemplateById(templateId: number): Promise<any> {
-  const response = await api.get(`/api/v1/reply-templates/${String(templateId)}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch template`);
-  }
-
-  return response.json();
-}
-
-async function fetchCampaignMessageCounts(): Promise<Record<string, number>> {
-  try {
-    // Get message counts per campaign
-    // Since Supabase doesn't support group() directly, we'll get all messages and count them
-    const { data: allMessages, error: messagesError } = await supabase!
-      .from('messages')
-      .select('campaign_id');
-
-    if (messagesError) {
-      console.error('Error fetching message counts:', messagesError);
-      return {}; // Return empty counts instead of throwing
-    }
-
-    // Count messages per campaign
-    const counts: Record<string, number> = {};
-    if (allMessages && Array.isArray(allMessages)) {
-      allMessages.forEach(message => {
-        if (message?.campaign_id != null) {
-          const campaignId = message.campaign_id.toString();
-          counts[campaignId] = (counts[campaignId] || 0) + 1;
-        }
-      });
-    }
-
-    return counts;
-  } catch (error) {
-    console.error('Unexpected error fetching message counts:', error);
-    return {}; // Return empty counts on error
-  }
+  return data as ReplyTemplateDetails;
 }
 
 async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
   try {
-    // Fetch campaigns, templates, and message counts in parallel
-    const [campaigns, replyTemplates, messageCounts] = await Promise.all([
-      fetchCampaigns(),
-      fetchReplyTemplates(),
-      fetchCampaignMessageCounts()
-    ]);
+    const { data, error } = await supabase!
+      .from('campaign_with_extra')
+      .select('id, name, created_at, updated_at, has_reply_template, template_id, message_count')
+      .order('id', { ascending: true });
 
-    // Defensive check: ensure campaigns is an array
-    if (!campaigns || !Array.isArray(campaigns)) {
-      console.error('Invalid campaigns data received');
-      return [];
+    if (error) {
+      throw error;
     }
 
-    // Create a map of campaign_id to template ID
-    const templateMap = new Map<number, number>();
-    if (replyTemplates && Array.isArray(replyTemplates)) {
-      replyTemplates.forEach(template => {
-        if (template?.campaign_id != null && template?.id != null) {
-          templateMap.set(template.campaign_id, template.id);
-        }
-      });
-    }
-
-    // Combine the data with defensive checks
-    return campaigns.map(campaign => {
-      const templateId = campaign?.id ? templateMap.get(parseInt(campaign.id)) : undefined;
-      return {
-        ...campaign,
-        hasReplyTemplate: !!templateId,
-        templateId,
-        messageCount: campaign?.id ? (messageCounts[campaign.id] || 0) : 0
-      };
-    });
+    return (data ?? []).map((campaign: any) => ({
+      id: campaign.id,
+      name: campaign.name,
+      created_at: campaign.created_at,
+      updated_at: campaign.updated_at,
+      hasReplyTemplate: Boolean(campaign.has_reply_template),
+      templateId: campaign.template_id ?? undefined,
+      messageCount: campaign.message_count ?? 0,
+    }));
   } catch (error) {
     console.error('Error fetching campaigns with extras:', error);
     throw error; // Re-throw for error boundary to catch
@@ -153,7 +93,7 @@ export function CampaignsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<ReplyTemplateDetails | null>(null);
 
   const { data: campaigns } = useSuspenseQuery<CampaignWithExtras[], Error>({
     queryKey: ['campaigns-with-extras'],
@@ -247,7 +187,7 @@ export function CampaignsPage() {
                               className="text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedCampaignId(parseInt(campaign.id));
+                                setSelectedCampaignId(campaign.id);
                                 setIsCreateDialogOpen(true);
                               }}
                             >
@@ -338,7 +278,11 @@ export function CampaignsPage() {
           <Suspense fallback={<LoadingSpinner />}>
             {editingTemplate && (
               <TemplateForm
-                initialData={editingTemplate}
+                initialData={{
+                  ...editingTemplate,
+                  send_timing: editingTemplate.send_timing,
+                  scheduled_for: editingTemplate.scheduled_for || undefined,
+                }}
                 onSuccess={() => {
                   queryClient.invalidateQueries({ queryKey: ['campaigns-with-extras'] });
                   setIsEditDialogOpen(false);
