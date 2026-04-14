@@ -1,6 +1,5 @@
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils'; // Import the new utility
 import { PageLayout } from '@/components/PageLayout'; // Import PageLayout
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
@@ -21,130 +20,83 @@ const LoadingSpinner = () => (
 );
 
 interface Campaign {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at: string; // Assuming 'updated_at' for modified_at
-  // Add other campaign properties as needed
-}
-
-interface CampaignWithExtras extends Campaign {
-  hasReplyTemplate: boolean;
-  templateId?: number;
-  messageCount: number;
-}
-
-interface ReplyTemplate {
   id: number;
-  campaign_id: number;
   name: string;
-  subject: string;
-  body: string;
-  active: boolean;
-  send_timing: string;
-  scheduled_for: string | null;
+  slug: string;
+  description: string | null;
+  keywords: string[] | null;
+  reference_vector: number[] | null;
+  vector_updated_at: string | null;
+  status: string;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }
 
-async function fetchCampaigns(): Promise<Campaign[]> {
-  const { data, error } = await supabase!.from('campaigns').select('*');
-  if (error) {
-    throw error; // Throw error for Suspense ErrorBoundary
-  }
-  return data;
-}
-
-async function fetchReplyTemplates(): Promise<ReplyTemplate[]> {
-  const response = await api.get('/api/v1/reply-templates');
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch reply templates');
-  }
-
-  return response.json();
+interface CampaignWithExtras extends Campaign {
+  messageCount: number;
+  hasReplyTemplate: boolean;
+  templateId?: number;
 }
 
 async function fetchTemplateById(templateId: number): Promise<any> {
-  const response = await api.get(`/api/v1/reply-templates/${String(templateId)}`);
+  const { data, error } = await supabase!
+    .from('reply_templates_with_campaign')
+    .select('id, campaign_id, name, subject, body, active, send_timing, scheduled_for')
+    .eq('id', templateId)
+    .single();
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch template`);
+  if (error) {
+    throw error;
   }
 
-  return response.json();
-}
-
-async function fetchCampaignMessageCounts(): Promise<Record<string, number>> {
-  try {
-    // Get message counts per campaign
-    // Since Supabase doesn't support group() directly, we'll get all messages and count them
-    const { data: allMessages, error: messagesError } = await supabase!
-      .from('messages')
-      .select('campaign_id');
-      
-    if (messagesError) {
-      console.error('Error fetching message counts:', messagesError);
-      return {}; // Return empty counts instead of throwing
-    }
-    
-    // Count messages per campaign
-    const counts: Record<string, number> = {};
-    if (allMessages && Array.isArray(allMessages)) {
-      allMessages.forEach(message => {
-        if (message?.campaign_id != null) {
-          const campaignId = message.campaign_id.toString();
-          counts[campaignId] = (counts[campaignId] || 0) + 1;
-        }
-      });
-    }
-    
-    return counts;
-  } catch (error) {
-    console.error('Unexpected error fetching message counts:', error);
-    return {}; // Return empty counts on error
-  }
+  return data;
 }
 
 async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
-  try {
-    // Fetch campaigns, templates, and message counts in parallel
-    const [campaigns, replyTemplates, messageCounts] = await Promise.all([
-      fetchCampaigns(),
-      fetchReplyTemplates(),
-      fetchCampaignMessageCounts()
-    ]);
-    
-    // Defensive check: ensure campaigns is an array
-    if (!campaigns || !Array.isArray(campaigns)) {
-      console.error('Invalid campaigns data received');
-      return [];
-    }
-    
-    // Create a map of campaign_id to template ID
-    const templateMap = new Map<number, number>();
-    if (replyTemplates && Array.isArray(replyTemplates)) {
-      replyTemplates.forEach(template => {
-        if (template?.campaign_id != null && template?.id != null) {
-          templateMap.set(template.campaign_id, template.id);
-        }
-      });
-    }
-    
-    // Combine the data with defensive checks
-    return campaigns.map(campaign => {
-      const templateId = campaign?.id ? templateMap.get(parseInt(campaign.id)) : undefined;
-      return {
-        ...campaign,
-        hasReplyTemplate: !!templateId,
-        templateId,
-        messageCount: campaign?.id ? (messageCounts[campaign.id] || 0) : 0
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching campaigns with extras:', error);
-    throw error; // Re-throw for error boundary to catch
+  const { data, error } = await supabase!
+    .from('campaign_with_extra')
+    .select(
+      [
+        'id',
+        'name',
+        'slug',
+        'description',
+        'keywords',
+        'reference_vector',
+        'vector_updated_at',
+        'status',
+        'created_by',
+        'created_at',
+        'updated_at',
+        'message_count',
+        'has_reply_template',
+        'template_id',
+      ].join(','),
+    )
+    .order('id', { ascending: true });
+
+  if (error) {
+    throw error;
   }
+
+  const rows = data && Array.isArray(data) ? data : [];
+  return rows.map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? null,
+    keywords: row.keywords ?? null,
+    reference_vector: row.reference_vector ?? null,
+    vector_updated_at: row.vector_updated_at ?? null,
+    status: row.status,
+    created_by: row.created_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    messageCount: row.message_count ?? 0,
+    hasReplyTemplate: !!row.has_reply_template,
+    templateId: row.template_id ?? undefined,
+  }));
 }
 
 export function CampaignsPage() {
@@ -166,104 +118,102 @@ export function CampaignsPage() {
         <CardHeader>
           <CardTitle className="text-primary">Campaigns</CardTitle>      </CardHeader>
         <CardContent>
-          <Suspense fallback={<LoadingSpinner />}>
-            {campaigns && Array.isArray(campaigns) && campaigns.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="py-2 px-4 border-b text-left">ID</th>
-                      <th className="py-2 px-4 border-b text-left">Name</th>
-                      <th className="py-2 px-4 border-b text-left">Created At</th>
-                      <th className="py-2 px-4 border-b text-left">Updated At</th>
-                      <th className="py-2 px-4 border-b text-left">Messages</th>
-                      <th className="py-2 px-4 border-b text-left">Reply Template</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {campaigns.map((campaign) => (
-                      <tr 
-                        key={campaign.id}
-                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+          {campaigns && Array.isArray(campaigns) && campaigns.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border border-gray-200">
+                <thead>
+                  <tr>
+                    <th className="py-2 px-4 border-b text-left">ID</th>
+                    <th className="py-2 px-4 border-b text-left">Name</th>
+                    <th className="py-2 px-4 border-b text-left">Created At</th>
+                    <th className="py-2 px-4 border-b text-left">Updated At</th>
+                    <th className="py-2 px-4 border-b text-left">Messages</th>
+                    <th className="py-2 px-4 border-b text-left">Reply Template</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map((campaign) => (
+                    <tr 
+                      key={campaign.id}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <td 
+                        className="py-2 px-4 border-b"
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
                       >
-                        <td 
-                          className="py-2 px-4 border-b"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          {campaign.id}
-                        </td>
-                        <td 
-                          className="py-2 px-4 border-b font-medium"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          {campaign.name}
-                        </td>
-                        <td 
-                          className="py-2 px-4 border-b"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          {campaign.created_at ? formatDate(campaign.created_at) : 'N/A'}
-                        </td>
-                        <td 
-                          className="py-2 px-4 border-b"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          {campaign.updated_at ? formatDate(campaign.updated_at) : 'N/A'}
-                        </td>
-                        <td 
-                          className="py-2 px-4 border-b"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          <Badge variant="secondary" className="text-white">
-                            {campaign.messageCount ?? 0} {campaign.messageCount === 1 ? 'message' : 'messages'}
+                        {campaign.id}
+                      </td>
+                      <td 
+                        className="py-2 px-4 border-b font-medium"
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      >
+                        {campaign.name}
+                      </td>
+                      <td 
+                        className="py-2 px-4 border-b"
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      >
+                        {campaign.created_at ? formatDate(campaign.created_at) : 'N/A'}
+                      </td>
+                      <td 
+                        className="py-2 px-4 border-b"
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      >
+                        {campaign.updated_at ? formatDate(campaign.updated_at) : 'N/A'}
+                      </td>
+                      <td 
+                        className="py-2 px-4 border-b"
+                        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      >
+                        <Badge variant="secondary" className="text-white">
+                          {campaign.messageCount ?? 0} {campaign.messageCount === 1 ? 'message' : 'messages'}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-4 border-b">
+                        {campaign.hasReplyTemplate ? (
+                          <Badge 
+                            variant="default" 
+                            className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer transition-colors"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!campaign.templateId) {
+                                toast.error('Template ID not found');
+                                return;
+                              }
+                              try {
+                                const template = await fetchTemplateById(campaign.templateId);
+                                setEditingTemplate(template);
+                                setIsEditDialogOpen(true);
+                              } catch (error) {
+                                console.error('Error fetching template:', error);
+                                toast.error('Failed to load template');
+                              }
+                            }}
+                          >
+                            Template Exists
                           </Badge>
-                        </td>
-                        <td className="py-2 px-4 border-b">
-                          {campaign.hasReplyTemplate ? (
-                            <Badge 
-                              variant="default" 
-                              className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer transition-colors"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!campaign.templateId) {
-                                  toast.error('Template ID not found');
-                                  return;
-                                }
-                                try {
-                                  const template = await fetchTemplateById(campaign.templateId);
-                                  setEditingTemplate(template);
-                                  setIsEditDialogOpen(true);
-                                } catch (error) {
-                                  console.error('Error fetching template:', error);
-                                  toast.error('Failed to load template');
-                                }
-                              }}
-                            >
-                              Template Exists
-                            </Badge>
-                          ) : (
-                            <Badge 
-                              variant="outline" 
-                              className="text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCampaignId(parseInt(campaign.id));
-                                setIsCreateDialogOpen(true);
-                              }}
-                            >
-                              No Template
-                            </Badge>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No campaigns found.</p>
-            )}
-          </Suspense>
+                        ) : (
+                          <Badge 
+                            variant="outline" 
+                            className="text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCampaignId(Number(campaign.id));
+                              setIsCreateDialogOpen(true);
+                            }}
+                          >
+                            No Template
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No campaigns found.</p>
+          )}
         </CardContent>
       </Card>
 
