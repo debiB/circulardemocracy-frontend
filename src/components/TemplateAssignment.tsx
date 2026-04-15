@@ -1,5 +1,5 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldDescription } from '@/components/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,23 +30,18 @@ interface TemplateAssignmentProps {
 
 async function fetchCampaignTemplates(campaignId: number): Promise<ReplyTemplate[]> {
   try {
-    const response = await api.get('/api/v1/reply-templates');
+    const { data, error } = await supabase!
+      .from('reply_templates_with_campaign')
+      .select('id, politician_id, campaign_id, name, subject, body, active, send_timing, scheduled_for')
+      .eq('campaign_id', campaignId)
+      .eq('active', true)
+      .order('id', { ascending: false });
 
-    if (!response.ok) {
-      let errorMessage = 'Failed to fetch reply templates';
-      try {
-        const errorText = await response.text();
-        errorMessage = getApiErrorMessage(errorText, 'Failed to fetch reply templates');
-      } catch (parseError) {
-        console.error('Error parsing error response:', parseError);
-      }
-      throw new Error(errorMessage);
+    if (error) {
+      throw error;
     }
 
-    const allTemplates: ReplyTemplate[] = await response.json();
-    
-    // Filter templates for this campaign and only active ones
-    return allTemplates.filter(t => t.campaign_id === campaignId && t.active);
+    return (data ?? []) as ReplyTemplate[];
   } catch (error) {
     const message = getApiErrorMessage(error, 'Failed to fetch reply templates');
     throw new Error(message);

@@ -1,6 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { api } from '@/lib/api';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,56 +30,23 @@ interface ReplyTemplate {
   updated_at: string;
 }
 
-interface Campaign {
-  id: number;
-  name: string;
-}
-
 interface TemplateWithCampaign extends ReplyTemplate {
-  campaign?: Campaign;
+  campaign_name: string | null;
 }
 
 async function fetchReplyTemplates(): Promise<TemplateWithCampaign[]> {
   try {
-    const response = await api.get('/api/v1/reply-templates');
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch reply templates');
-    }
-
-    const templates: ReplyTemplate[] = await response.json();
-    
-    // Defensive check: ensure templates is an array
-    if (!templates || !Array.isArray(templates)) {
-      console.error('Invalid templates data received');
-      return [];
-    }
-    
-    // Extract campaign IDs safely
-    const campaignIds = [...new Set(templates.filter(t => t?.campaign_id != null).map(t => t.campaign_id))];
-    
-    // Only fetch campaigns if we have IDs
-    if (campaignIds.length === 0) {
-      return templates.map(template => ({ ...template, campaign: undefined }));
-    }
-    
-    const { data: campaigns, error } = await supabase!
-      .from('campaigns')
-      .select('id, name')
-      .in('id', campaignIds);
+    const { data, error } = await supabase!
+      .from('reply_templates_with_campaign')
+      .select('id, politician_id, campaign_id, campaign_name, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at')
+      .order('campaign_id', { ascending: true })
+      .order('id', { ascending: false });
 
     if (error) {
-      console.error('Error fetching campaigns:', error);
-      // Continue without campaign data rather than failing completely
-      return templates.map(template => ({ ...template, campaign: undefined }));
+      throw error;
     }
 
-    const campaignMap = new Map(campaigns?.map(c => [c.id, c]) || []);
-    
-    return templates.map(template => ({
-      ...template,
-      campaign: template?.campaign_id ? campaignMap.get(template.campaign_id) : undefined,
-    }));
+    return (data ?? []) as TemplateWithCampaign[];
   } catch (error) {
     console.error('Error fetching reply templates:', error);
     throw error; // Re-throw for error boundary
@@ -103,20 +69,20 @@ function TemplatesList() {
     const campaignId = template.campaign_id;
     if (!acc[campaignId]) {
       acc[campaignId] = {
-        campaign: template.campaign,
+        campaign_name: template.campaign_name,
         templates: [],
       };
     }
     acc[campaignId].templates.push(template);
     return acc;
-  }, {} as Record<number, { campaign?: Campaign; templates: TemplateWithCampaign[] }>);
+  }, {} as Record<number, { campaign_name: string | null; templates: TemplateWithCampaign[] }>);
 
   return (
     <div className="space-y-6">
-      {Object.entries(groupedByCampaign).map(([campaignId, { campaign, templates: campaignTemplates }]) => (
+      {Object.entries(groupedByCampaign).map(([campaignId, { campaign_name, templates: campaignTemplates }]) => (
         <Card key={campaignId}>
           <CardHeader>
-            <CardTitle>{campaign?.name || `Campaign #${campaignId}`}</CardTitle>
+            <CardTitle>{campaign_name || `Campaign #${campaignId}`}</CardTitle>
             <CardDescription>
               {campaignTemplates.length} {campaignTemplates.length === 1 ? 'template' : 'templates'}
             </CardDescription>

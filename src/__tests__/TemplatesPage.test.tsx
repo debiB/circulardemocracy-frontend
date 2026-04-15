@@ -152,7 +152,7 @@ describe("TemplatesPage", () => {
           active: true,
           send_timing: "immediate",
           scheduled_for: null,
-          campaign: { id: 1, name: "Climate Action" },
+          campaign_name: "Climate Action",
         },
         {
           id: 2,
@@ -163,7 +163,7 @@ describe("TemplatesPage", () => {
           active: false,
           send_timing: "office_hours",
           scheduled_for: null,
-          campaign: { id: 1, name: "Climate Action" },
+          campaign_name: "Climate Action",
         },
         {
           id: 3,
@@ -174,7 +174,7 @@ describe("TemplatesPage", () => {
           active: true,
           send_timing: "scheduled",
           scheduled_for: "2024-12-01T10:00:00Z",
-          campaign: { id: 2, name: "Education Reform" },
+          campaign_name: "Education Reform",
         },
       ],
     });
@@ -199,7 +199,7 @@ describe("TemplatesPage", () => {
           body: "Body 1",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Climate Action" },
+          campaign_name: "Climate Action",
         },
         {
           id: 2,
@@ -209,7 +209,7 @@ describe("TemplatesPage", () => {
           body: "Body 2",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Climate Action" },
+          campaign_name: "Climate Action",
         },
       ],
     });
@@ -230,7 +230,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
         {
           id: 2,
@@ -240,7 +240,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: false,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
       ],
     });
@@ -262,7 +262,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
       ],
     });
@@ -309,7 +309,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
       ],
     });
@@ -330,7 +330,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
       ],
     });
@@ -357,7 +357,7 @@ describe("TemplatesPage", () => {
           body: "Body",
           active: true,
           send_timing: "immediate",
-          campaign: { id: 1, name: "Test Campaign" },
+          campaign_name: "Test Campaign",
         },
       ],
     });

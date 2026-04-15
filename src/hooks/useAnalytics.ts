@@ -20,11 +20,78 @@ interface AnalyticsData {
   }>;
 }
 
-interface AnalyticsItem {
+interface AnalyticsDailyRow {
   date: string;
-  campaign_id: number;
-  campaign_name: string;
+  campaign_id: number | null;
+  campaign_name: string | null;
   message_count: number;
+}
+
+const emptyAnalytics = (): AnalyticsData => ({
+  totalMessages: 0,
+  repliesSent: 0,
+  pendingReplies: 0,
+  messagesByDay: [],
+  messagesByCampaign: [],
+  dailyCampaignData: [],
+});
+
+function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
+  if (!rows.length) {
+    return emptyAnalytics();
+  }
+
+  const byDay = new Map<string, number>();
+  const byCampaign = new Map<number, { campaignName: string; count: number }>();
+  const byDayCampaign = new Map<string, Record<string, number>>();
+
+  for (const row of rows) {
+    const count = Number(row.message_count || 0);
+    const date = row.date.slice(0, 10);
+    const campaignId = row.campaign_id;
+    const campaignName = row.campaign_name ?? "Unknown";
+
+    byDay.set(date, (byDay.get(date) ?? 0) + count);
+
+    if (campaignId !== null) {
+      const currentCampaign = byCampaign.get(campaignId);
+      byCampaign.set(campaignId, {
+        campaignName,
+        count: (currentCampaign?.count ?? 0) + count,
+      });
+    }
+
+    const dailyCampaigns = byDayCampaign.get(date) ?? {};
+    dailyCampaigns[campaignName] = (dailyCampaigns[campaignName] ?? 0) + count;
+    byDayCampaign.set(date, dailyCampaigns);
+  }
+
+  const messagesByDay = Array.from(byDay.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+
+  const messagesByCampaign = Array.from(byCampaign.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([campaignId, { campaignName, count }]) => ({
+      campaignId,
+      campaignName,
+      count,
+    }));
+
+  const dailyCampaignData = Array.from(byDayCampaign.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, campaigns]) => ({ date, campaigns }));
+
+  const totalMessages = messagesByDay.reduce((sum, row) => sum + row.count, 0);
+
+  return {
+    totalMessages,
+    repliesSent: 0,
+    pendingReplies: totalMessages,
+    messagesByDay,
+    messagesByCampaign,
+    dailyCampaignData,
+  };
 }
 
 async function fetchAnalytics(): Promise<AnalyticsData> {
@@ -37,113 +104,24 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
   }
 
   try {
-    //const { data: analytics, error } = await supabase!
-    //  .rpc('get_message_analytics_daily', { days_back: 7 });
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: analytics, error } = await supabase!
-      .from("daily_message_analytics")
-      .select("*");
-
-    console.log(analytics);
+    const { data, error } = await supabase!
+      .from("message_analytics_view")
+      .select("date, campaign_id, campaign_name, message_count")
+      .gte("date", sevenDaysAgo.toISOString())
+      .order("date", { ascending: true });
 
     if (error) {
-      console.error("analytics returned error:", error);
-      return {
-        totalMessages: 0,
-        repliesSent: 0,
-        pendingReplies: 0,
-        messagesByDay: [],
-        messagesByCampaign: [],
-        dailyCampaignData: [],
-      };
+      console.error("analytics query returned error:", error);
+      return emptyAnalytics();
     }
 
-    if (!analytics || analytics.length === 0) {
-      return {
-        totalMessages: 0,
-        repliesSent: 0,
-        pendingReplies: 0,
-        messagesByDay: [],
-        messagesByCampaign: [],
-        dailyCampaignData: [],
-      };
-    }
-
-    // Group data by date and campaign
-    const dailyByCampaignMap = new Map<string, Map<string, number>>();
-    const campaignMap = new Map<number, { name: string; count: number }>();
-    let totalMessages = 0;
-
-    analytics.forEach((item: AnalyticsItem) => {
-      const date = item.date;
-      const campaignName = item.campaign_name;
-
-      // Build daily campaign breakdown
-      if (!dailyByCampaignMap.has(date)) {
-        dailyByCampaignMap.set(date, new Map());
-      }
-      const dayMap = dailyByCampaignMap.get(date)!;
-      dayMap.set(campaignName, item.message_count);
-
-      // Aggregate campaign totals
-      const existing = campaignMap.get(item.campaign_id);
-      if (existing) {
-        existing.count += item.message_count;
-      } else {
-        campaignMap.set(item.campaign_id, {
-          name: item.campaign_name,
-          count: item.message_count,
-        });
-      }
-
-      totalMessages += item.message_count;
-    });
-
-    // Convert to array format for messagesByDay
-    const messagesByDay = Array.from(dailyByCampaignMap.entries())
-      .map(([date, campaigns]) => {
-        const totalForDay = Array.from(campaigns.values()).reduce(
-          (sum, count) => sum + count,
-          0,
-        );
-        return { date, count: totalForDay };
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    const messagesByCampaign = Array.from(campaignMap.entries())
-      .map(([campaignId, { name, count }]) => ({
-        campaignId,
-        campaignName: name,
-        count,
-      }))
-      .sort((a, b) => a.campaignId - b.campaignId);
-
-    // Store daily campaign breakdown for chart use
-    const dailyCampaignData = Array.from(dailyByCampaignMap.entries())
-      .map(([date, campaigns]) => ({
-        date,
-        campaigns: Object.fromEntries(campaigns),
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    return {
-      totalMessages,
-      repliesSent: 0,
-      pendingReplies: totalMessages,
-      messagesByDay,
-      messagesByCampaign,
-      dailyCampaignData,
-    };
+    return buildAnalytics((data ?? []) as AnalyticsDailyRow[]);
   } catch (error) {
     console.warn("Failed to fetch analytics, returning empty data:", error);
-    return {
-      totalMessages: 0,
-      repliesSent: 0,
-      pendingReplies: 0,
-      messagesByDay: [],
-      messagesByCampaign: [],
-      dailyCampaignData: [],
-    };
+    return emptyAnalytics();
   }
 }
 

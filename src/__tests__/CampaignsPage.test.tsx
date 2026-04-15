@@ -131,7 +131,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "1",
+          id: 1,
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
@@ -139,7 +139,7 @@ describe("CampaignsPage", () => {
           messageCount: 25,
         },
         {
-          id: "2",
+          id: 2,
           name: "Education Reform",
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
@@ -175,7 +175,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "42",
+          id: 42,
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
@@ -197,7 +197,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "2",
+          id: 2,
           name: "Education Reform",
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
@@ -226,7 +226,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "1",
+          id: 1,
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
@@ -246,7 +246,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "1",
+          id: 1,
           name: "Single Message",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
@@ -254,7 +254,7 @@ describe("CampaignsPage", () => {
           messageCount: 1,
         },
         {
-          id: "2",
+          id: 2,
           name: "Multiple Messages",
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
@@ -274,7 +274,7 @@ describe("CampaignsPage", () => {
     mockUseSuspenseQuery.mockReturnValue({
       data: [
         {
-          id: "1",
+          id: 1,
           name: "Climate Action",
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",

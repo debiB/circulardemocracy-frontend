@@ -70,27 +70,10 @@ async function fetchCampaignMessages(
     
     const offset = (page - 1) * pageSize;
     
-    // Get total count first
-    let countQuery = supabase!
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaignId);
-      
-    if (filterLowConfidence) {
-      countQuery = countQuery.lt('classification_confidence', 0.7);
-    }
-    
-    const { count: totalCount, error: countError } = await countQuery;
-    
-    if (countError) {
-      console.error('Error fetching message count:', countError);
-      throw countError;
-    }
-    
-    // Get paginated messages
+    // Single query returns both paginated rows and total count.
     let query = supabase!
       .from('messages')
-      .select('id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status')
+      .select('id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status', { count: 'exact' })
       .eq('campaign_id', campaignId)
       .range(offset, offset + pageSize - 1)
       .order('received_at', { ascending: false });
@@ -101,7 +84,7 @@ async function fetchCampaignMessages(
       query = query.lt('classification_confidence', 0.7);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       console.error('Error fetching messages:', error);
@@ -113,7 +96,7 @@ async function fetchCampaignMessages(
     
     return { 
       messages, 
-      totalCount: totalCount ?? 0 
+      totalCount: count ?? 0 
     };
   } catch (error) {
     console.error('Error in fetchCampaignMessages:', error);
