@@ -30,7 +30,6 @@ const LoadingSpinner = () => (
 
 interface ReplyTemplate {
 	id: number;
-	politician_id: number;
 	campaign_id: number;
 	name: string;
 	subject: string;
@@ -51,7 +50,7 @@ async function fetchReplyTemplates(): Promise<TemplateWithCampaign[]> {
 		const { data, error } = await supabase
 			?.from("reply_templates_with_campaign")
 			.select(
-				"id, politician_id, campaign_id, campaign_name, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
+				"id, campaign_id, campaign_name, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
 			)
 			.order("campaign_id", { ascending: true })
 			.order("id", { ascending: false });

@@ -41,7 +41,6 @@ interface CampaignWithExtras extends Campaign {
 
 interface ReplyTemplateDetails {
 	id: number;
-	politician_id: number;
 	campaign_id: number;
 	name: string;
 	subject: string;
@@ -56,10 +55,10 @@ interface ReplyTemplateDetails {
 async function fetchTemplateById(
 	templateId: number,
 ): Promise<ReplyTemplateDetails> {
-	const { data, error } = await supabase
-		?.from("reply_templates_with_campaign")
+	const { data, error } = await supabase!
+		.from("reply_templates_with_campaign")
 		.select(
-			"id, politician_id, campaign_id, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
+			"id, campaign_id, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
 		)
 		.eq("id", templateId)
 		.single();
@@ -73,8 +72,8 @@ async function fetchTemplateById(
 
 async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
 	try {
-		const { data, error } = await supabase
-			?.from("campaign_with_extra")
+		const { data, error } = await supabase!
+			.from("campaign_with_extra")
 			.select(
 				"id, name, created_at, updated_at, has_reply_template, template_id, message_count",
 			)

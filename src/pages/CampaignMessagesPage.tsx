@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
 	ArrowLeft,
 	ChevronLeft,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Suspense, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
 import {
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 interface Campaign {
 	id: number;
@@ -48,6 +50,15 @@ interface Message {
 	reply_template_id: number | null;
 	processing_status: string;
 	// Note: sender_hash removed from interface as sender info is not displayed
+}
+
+interface BroadcastResponse {
+	success: boolean;
+	campaign_id: number;
+	supporter_count: number;
+	messages_created: number;
+	failures: number;
+	error?: string;
 }
 
 async function fetchCampaign(campaignId: string): Promise<Campaign> {
@@ -126,6 +137,7 @@ async function fetchCampaignMessages(
 export function CampaignMessagesPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	if (!id) {
 		return (
@@ -176,7 +188,6 @@ export function CampaignMessagesPage() {
 		queryFn: () =>
 			fetchCampaignMessages(id, hasReplyTemplate, currentPage, pageSize),
 	});
-
 	const allMessages = messagesData?.messages || [];
 
 	// Filter messages by reply status
@@ -307,6 +318,31 @@ export function CampaignMessagesPage() {
 		setIsReplyDialogOpen(true);
 	};
 
+	const handleBroadcastReplies = async () => {
+		try {
+			const response = await api.post(
+				`/api/v1/campaigns/${campaign.id}/replies/broadcast`,
+			);
+			const data = (await response.json()) as BroadcastResponse;
+
+			if (!response.ok) {
+				throw new Error(data.error || "Failed to queue broadcast replies");
+			}
+
+			toast.success(
+				`Queued ${data.messages_created} replies for ${data.supporter_count} supporters.`,
+			);
+			queryClient.invalidateQueries({ queryKey: ["campaign-messages", id] });
+		} catch (error) {
+			console.error("Broadcast reply error:", error);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to queue campaign broadcast replies",
+			);
+		}
+	};
+
 	// JMAP Integration Point: On-demand message content fetching
 	const handleViewMessage = (messageId: number) => {
 		// TODO: Implement JMAP integration to fetch message content from Stalwart
@@ -342,6 +378,9 @@ export function CampaignMessagesPage() {
 						Back to Campaigns
 					</Button>
 					<div className="flex items-center gap-2">
+						<Button onClick={handleBroadcastReplies} variant="default">
+							Send Active Reply To All Supporters
+						</Button>
 						{selectedMessages.size > 0 && (
 							<Button
 								onClick={handleCreateReply}

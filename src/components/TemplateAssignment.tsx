@@ -20,7 +20,6 @@ import { getApiErrorMessage } from "@/lib/utils";
 
 interface ReplyTemplate {
 	id: number;
-	politician_id: number;
 	campaign_id: number;
 	name: string;
 	subject: string;
@@ -45,7 +44,7 @@ async function fetchCampaignTemplates(
 		const { data, error } = await supabase!
 			.from("reply_templates_with_campaign")
 			.select(
-				"id, politician_id, campaign_id, name, subject, body, active, send_timing, scheduled_for",
+				"id, campaign_id, name, subject, body, active, send_timing, scheduled_for",
 			)
 			.eq("campaign_id", campaignId)
 			.eq("active", true)
