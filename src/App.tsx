@@ -118,7 +118,7 @@ export function App() {
 							</Suspense>
 						}
 					/>
-					<Route path="/analytics" element={<Navigate to="/" replace />} />
+					
 				</Route>
 
 				<Route element={<PublicRoute />}>
