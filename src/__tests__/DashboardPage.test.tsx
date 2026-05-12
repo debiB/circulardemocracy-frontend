@@ -16,24 +16,6 @@ vi.mock("@/components/PageLayout", () => ({
 	),
 }));
 
-vi.mock("@/components/analytics/AnalyticsContainer", () => ({
-	AnalyticsContainer: () => (
-		<div data-testid="analytics-container">Analytics</div>
-	),
-}));
-
-vi.mock("@/components/component-example", () => ({
-	ComponentExample: () => (
-		<div data-testid="component-example">Example Component</div>
-	),
-}));
-
-vi.mock("@/components/dashboard/CampaignsWithoutReplyTemplateCard", () => ({
-	CampaignsWithoutReplyTemplateCard: () => (
-		<div data-testid="campaigns-without-template">No template</div>
-	),
-}));
-
 vi.mock("@/components/ui/card", () => ({
 	Card: ({ children, className }: any) => (
 		<div className={className}>{children}</div>
@@ -47,6 +29,12 @@ vi.mock("@/components/ui/card", () => ({
 	),
 }));
 
+vi.mock("@/components/component-example", () => ({
+	ComponentExample: () => (
+		<div data-testid="component-example">Example Component</div>
+	),
+}));
+
 describe("DashboardPage", () => {
 	let queryClient: QueryClient;
 
@@ -55,7 +43,6 @@ describe("DashboardPage", () => {
 			defaultOptions: {
 				queries: {
 					retry: false,
-					staleTime: Infinity,
 				},
 			},
 		});
@@ -101,15 +88,6 @@ describe("DashboardPage", () => {
 		expect(screen.getByTestId("component-example")).toBeInTheDocument();
 	});
 
-	it("renders home analytics and campaigns-without-template sections", () => {
-		render(<DashboardPage />, { wrapper });
-
-		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
-		expect(
-			screen.getByTestId("campaigns-without-template"),
-		).toBeInTheDocument();
-	});
-
 	it("returns null when user is not authenticated", () => {
 		mockUseUser.mockReturnValue({
 			data: null,
@@ -126,17 +104,13 @@ describe("DashboardPage", () => {
 		expect(screen.getByTestId("page-layout")).toBeInTheDocument();
 	});
 
-	it("renders welcome card, example, and dashboard sections", () => {
+	it("renders welcome card and example component", () => {
 		render(<DashboardPage />, { wrapper });
 
 		expect(
 			screen.getByText("Welcome to Circular Democracy!"),
 		).toBeInTheDocument();
 		expect(screen.getByTestId("component-example")).toBeInTheDocument();
-		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
-		expect(
-			screen.getByTestId("campaigns-without-template"),
-		).toBeInTheDocument();
 	});
 
 	it("applies correct styling to welcome card", () => {
@@ -194,13 +168,9 @@ describe("DashboardPage", () => {
 		render(<DashboardPage />, { wrapper });
 
 		const welcomeText = screen.getByText("Welcome to Circular Democracy!");
-		const example = screen.getByTestId("component-example");
-		const analytics = screen.getByTestId("analytics-container");
-		const noTemplate = screen.getByTestId("campaigns-without-template");
+		const exampleComponent = screen.getByTestId("component-example");
 
 		expect(welcomeText).toBeInTheDocument();
-		expect(example).toBeInTheDocument();
-		expect(analytics).toBeInTheDocument();
-		expect(noTemplate).toBeInTheDocument();
+		expect(exampleComponent).toBeInTheDocument();
 	});
 });

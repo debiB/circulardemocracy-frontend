@@ -13,23 +13,12 @@ export interface MessageLineChartProps {
 	data: MessageLineChartData[];
 	height?: string | number;
 	className?: string;
-	/** X-axis labels: calendar day vs week range (week start is Monday per Postgres `date_trunc('week', …)`). */
-	timeBucket?: "day" | "week";
-}
-
-function formatWeekRangeLabel(isoDatePrefix: string): string {
-	const start = new Date(`${isoDatePrefix.slice(0, 10)}T12:00:00`);
-	const end = new Date(start);
-	end.setDate(end.getDate() + 6);
-	const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
-	return `${fmt(start)}–${fmt(end)}`;
 }
 
 export function MessageLineChart({
 	data,
 	height = 400,
 	className = "",
-	timeBucket = "day",
 }: MessageLineChartProps) {
 	const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -104,7 +93,7 @@ export function MessageLineChart({
 		grid: {
 			left: "3%",
 			right: "4%",
-			bottom: timeBucket === "week" ? "14%" : "10%",
+			bottom: "3%",
 			top: "15%",
 			containLabel: true,
 		},
@@ -119,12 +108,8 @@ export function MessageLineChart({
 			},
 			axisLabel: {
 				color: isDarkMode ? "#9ca3af" : "#6b7280",
-				rotate: 0,
-				hideOverlap: true,
+				rotate: 45,
 				formatter: (value: string) => {
-					if (timeBucket === "week") {
-						return formatWeekRangeLabel(value.slice(0, 10));
-					}
 					const date = new Date(value);
 					return `${date.getMonth() + 1}/${date.getDate()}`;
 				},
