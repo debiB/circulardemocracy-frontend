@@ -26,9 +26,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import { getSupabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
-import { api } from "@/lib/api";
 
 interface Campaign {
 	id: number;
