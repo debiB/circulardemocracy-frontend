@@ -15,7 +15,6 @@ import {
 import { CampaignFilter } from "@/components/filters/CampaignFilter";
 // Import components
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { AnalyticsPage } from "@/pages/AnalyticsPage";
 
 // =============================================================================
 // MOCKS
@@ -25,8 +24,7 @@ const { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom } = vi.hoisted(
 	() => {
 		const mockGetSession = vi.fn();
 		const mockAnalyticsOrder = vi.fn();
-		const mockAnalyticsGte = vi.fn(() => ({ order: mockAnalyticsOrder }));
-		const mockAnalyticsSelect = vi.fn(() => ({ gte: mockAnalyticsGte }));
+		const mockAnalyticsSelect = vi.fn(() => ({ order: mockAnalyticsOrder }));
 		const mockAnalyticsFrom = vi.fn(() => ({ select: mockAnalyticsSelect }));
 		return { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom };
 	},
@@ -112,7 +110,7 @@ const expectedAnalyticsData = {
 	totalMessages: 150,
 	repliesSent: 0,
 	pendingReplies: 150,
-	messagesByDay: [
+	messagesByPeriod: [
 		{ date: "2026-03-31", count: 90 },
 		{ date: "2026-04-01", count: 60 },
 	],
@@ -120,7 +118,7 @@ const expectedAnalyticsData = {
 		{ campaignId: 1, campaignName: "Campaign A", count: 80 },
 		{ campaignId: 2, campaignName: "Campaign B", count: 70 },
 	],
-	dailyCampaignData: [
+	chartCampaignData: [
 		{ date: "2026-03-31", campaigns: { "Campaign A": 55, "Campaign B": 35 } },
 		{ date: "2026-04-01", campaigns: { "Campaign A": 25, "Campaign B": 35 } },
 	],
@@ -187,7 +185,9 @@ describe("useAnalytics Hook", () => {
 		await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
 		expect(result.current.data).toEqual(expectedAnalyticsData);
-		expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_view");
+		expect(mockAnalyticsFrom).toHaveBeenCalledWith(
+			"message_analytics_weekly_view",
+		);
 	});
 
 	it("handles loading state", () => {
@@ -225,9 +225,9 @@ describe("useAnalytics Hook", () => {
 			totalMessages: 0,
 			repliesSent: 0,
 			pendingReplies: 0,
-			messagesByDay: [],
+			messagesByPeriod: [],
 			messagesByCampaign: [],
-			dailyCampaignData: [],
+			chartCampaignData: [],
 		});
 	});
 
@@ -244,9 +244,9 @@ describe("useAnalytics Hook", () => {
 			totalMessages: 0,
 			repliesSent: 0,
 			pendingReplies: 0,
-			messagesByDay: [],
+			messagesByPeriod: [],
 			messagesByCampaign: [],
-			dailyCampaignData: [],
+			chartCampaignData: [],
 		});
 	});
 
@@ -283,7 +283,9 @@ describe("useAnalytics Hook", () => {
 		});
 
 		expect(mockGetSession).toHaveBeenCalled();
-		expect(mockAnalyticsFrom).toHaveBeenCalledWith("message_analytics_view");
+		expect(mockAnalyticsFrom).toHaveBeenCalledWith(
+			"message_analytics_weekly_view",
+		);
 	});
 });
 
@@ -451,39 +453,3 @@ describe("MessageLineChart Component", () => {
 // =============================================================================
 // Note: AnalyticsContainer tests are covered through integration tests
 // and the useAnalytics hook tests above provide comprehensive coverage
-
-// =============================================================================
-// PAGE TESTS: AnalyticsPage
-// =============================================================================
-
-describe("AnalyticsPage Component", () => {
-	let queryClient: QueryClient;
-
-	beforeEach(() => {
-		queryClient = new QueryClient({
-			defaultOptions: {
-				queries: {
-					retry: false,
-				},
-			},
-		});
-		vi.clearAllMocks();
-	});
-
-	const wrapper = ({ children }: { children: React.ReactNode }) => (
-		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
-
-	it("renders the analytics page with PageLayout", () => {
-		render(<AnalyticsPage />, { wrapper });
-
-		expect(screen.getByTestId("page-layout")).toBeInTheDocument();
-	});
-
-	it("renders AnalyticsContainer inside PageLayout", () => {
-		render(<AnalyticsPage />, { wrapper });
-
-		const pageLayout = screen.getByTestId("page-layout");
-		expect(pageLayout).toBeInTheDocument();
-	});
-});

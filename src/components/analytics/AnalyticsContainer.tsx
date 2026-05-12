@@ -4,80 +4,24 @@ import {
 	type MessageLineChartData,
 } from "@/components/charts/MessageLineChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { useSuspenseAnalytics } from "@/hooks/useAnalytics";
 
 export function AnalyticsContainer() {
-	const { data, isLoading, isError, error } = useAnalytics();
+	const { data } = useSuspenseAnalytics();
 
 	const chartData = useMemo<MessageLineChartData[]>(() => {
-		if (!data?.dailyCampaignData) return [];
+		if (!data?.chartCampaignData) return [];
 
-		return data.dailyCampaignData.map((dayData) => ({
-			date: dayData.date,
-			campaigns: dayData.campaigns,
+		return data.chartCampaignData.map((bucket) => ({
+			date: bucket.date,
+			campaigns: bucket.campaigns,
 		}));
 	}, [data]);
-
-	if (isLoading) {
-		return (
-			<Card className="p-4">
-				<CardHeader>
-					<CardTitle className="text-primary">
-						What happened this week
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex items-center justify-center h-64">
-						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-					</div>
-				</CardContent>
-			</Card>
-		);
-	}
-
-	if (isError) {
-		return (
-			<Card className="p-4">
-				<CardHeader>
-					<CardTitle className="text-primary">Analytics</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex flex-col items-center justify-center h-64 gap-4">
-						<p className="text-red-500 text-center">
-							Failed to load analytics data
-						</p>
-						<p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-							{error?.message || "An unexpected error occurred"}
-						</p>
-					</div>
-				</CardContent>
-			</Card>
-		);
-	}
-
-	if (!data) {
-		return (
-			<Card className="p-4">
-				<CardHeader>
-					<CardTitle className="text-primary">
-						What happened this week
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex items-center justify-center h-64">
-						<p className="text-gray-500 dark:text-gray-400">
-							No analytics data available
-						</p>
-					</div>
-				</CardContent>
-			</Card>
-		);
-	}
 
 	return (
 		<Card className="p-4">
 			<CardHeader>
-				<CardTitle className="text-primary">Analytics</CardTitle>
+				<CardTitle className="text-primary">Messages by week</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,7 +53,7 @@ export function AnalyticsContainer() {
 
 				<div>
 					{chartData.length > 0 ? (
-						<MessageLineChart data={chartData} height={400} />
+						<MessageLineChart data={chartData} height={400} timeBucket="week" />
 					) : (
 						<div className="flex items-center justify-center h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
 							<p className="text-gray-500 dark:text-gray-400">

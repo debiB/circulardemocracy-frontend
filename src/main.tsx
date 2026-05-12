@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext.tsx";
 import { getSupabaseError } from "./lib/supabase.ts";
@@ -36,12 +37,14 @@ if (supabaseInitializationError) {
 		<StrictMode>
 			<ErrorBoundary>
 				<QueryClientProvider client={queryClient}>
-					<BrowserRouter>
-						<AuthProvider>
-							<App />
-							<Toaster />
-						</AuthProvider>
-					</BrowserRouter>
+					<TooltipProvider delayDuration={200}>
+						<BrowserRouter>
+							<AuthProvider>
+								<App />
+								<Toaster />
+							</AuthProvider>
+						</BrowserRouter>
+					</TooltipProvider>
 					<ReactQueryDevtools initialIsOpen={false} />
 				</QueryClientProvider>
 			</ErrorBoundary>

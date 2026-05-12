@@ -46,8 +46,7 @@ const createMockQueryResult = (data: any): any => ({
 });
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
-	const actual =
-		await importOriginal<typeof import("@tanstack/react-query")>();
+	const actual = await importOriginal<typeof import("@tanstack/react-query")>();
 	return {
 		...actual,
 		useSuspenseQuery: vi.fn(),

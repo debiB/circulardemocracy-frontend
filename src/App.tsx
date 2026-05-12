@@ -3,7 +3,6 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Navbar } from "@/components/navbar";
 import { PageLayout } from "@/components/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { CampaignMessagesPage } from "./pages/CampaignMessagesPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -119,7 +118,7 @@ export function App() {
 							</Suspense>
 						}
 					/>
-					<Route path="/analytics" element={<AnalyticsPage />} />
+					<Route path="/analytics" element={<Navigate to="/" replace />} />
 				</Route>
 
 				<Route element={<PublicRoute />}>

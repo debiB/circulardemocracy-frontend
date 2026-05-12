@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { getSupabase } from "@/lib/supabase";
 
 interface AnalyticsData {
 	totalMessages: number;
 	repliesSent: number;
 	pendingReplies: number;
-	messagesByDay: Array<{
+	/** Counts per chart bucket (calendar week from `message_analytics_weekly_view`). */
+	messagesByPeriod: Array<{
 		date: string;
 		count: number;
 	}>;
@@ -14,13 +15,14 @@ interface AnalyticsData {
 		campaignName: string;
 		count: number;
 	}>;
-	dailyCampaignData?: Array<{
+	/** One entry per bucket for the line chart (campaign breakdown). */
+	chartCampaignData?: Array<{
 		date: string;
 		campaigns: { [campaignName: string]: number };
 	}>;
 }
 
-interface AnalyticsDailyRow {
+interface AnalyticsBucketRow {
 	date: string;
 	campaign_id: number | null;
 	campaign_name: string | null;
@@ -31,19 +33,19 @@ const emptyAnalytics = (): AnalyticsData => ({
 	totalMessages: 0,
 	repliesSent: 0,
 	pendingReplies: 0,
-	messagesByDay: [],
+	messagesByPeriod: [],
 	messagesByCampaign: [],
-	dailyCampaignData: [],
+	chartCampaignData: [],
 });
 
-function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
+function buildAnalytics(rows: AnalyticsBucketRow[]): AnalyticsData {
 	if (!rows.length) {
 		return emptyAnalytics();
 	}
 
-	const byDay = new Map<string, number>();
+	const bucketTotals = new Map<string, number>();
 	const byCampaign = new Map<number, { campaignName: string; count: number }>();
-	const byDayCampaign = new Map<string, Record<string, number>>();
+	const bucketCampaigns = new Map<string, Record<string, number>>();
 
 	for (const row of rows) {
 		const count = Number(row.message_count || 0);
@@ -51,7 +53,7 @@ function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
 		const campaignId = row.campaign_id;
 		const campaignName = row.campaign_name ?? "Unknown";
 
-		byDay.set(date, (byDay.get(date) ?? 0) + count);
+		bucketTotals.set(date, (bucketTotals.get(date) ?? 0) + count);
 
 		if (campaignId !== null) {
 			const currentCampaign = byCampaign.get(campaignId);
@@ -61,12 +63,13 @@ function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
 			});
 		}
 
-		const dailyCampaigns = byDayCampaign.get(date) ?? {};
-		dailyCampaigns[campaignName] = (dailyCampaigns[campaignName] ?? 0) + count;
-		byDayCampaign.set(date, dailyCampaigns);
+		const campaignsForBucket = bucketCampaigns.get(date) ?? {};
+		campaignsForBucket[campaignName] =
+			(campaignsForBucket[campaignName] ?? 0) + count;
+		bucketCampaigns.set(date, campaignsForBucket);
 	}
 
-	const messagesByDay = Array.from(byDay.entries())
+	const messagesByPeriod = Array.from(bucketTotals.entries())
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([date, count]) => ({ date, count }));
 
@@ -78,19 +81,22 @@ function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
 			count,
 		}));
 
-	const dailyCampaignData = Array.from(byDayCampaign.entries())
+	const chartCampaignData = Array.from(bucketCampaigns.entries())
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([date, campaigns]) => ({ date, campaigns }));
 
-	const totalMessages = messagesByDay.reduce((sum, row) => sum + row.count, 0);
+	const totalMessages = messagesByPeriod.reduce(
+		(sum, row) => sum + row.count,
+		0,
+	);
 
 	return {
 		totalMessages,
 		repliesSent: 0,
 		pendingReplies: totalMessages,
-		messagesByDay,
+		messagesByPeriod,
 		messagesByCampaign,
-		dailyCampaignData,
+		chartCampaignData,
 	};
 }
 
@@ -104,13 +110,9 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 	}
 
 	try {
-		const sevenDaysAgo = new Date();
-		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
 		const { data, error } = await getSupabase()
-			.from("message_analytics_view")
+			.from("message_analytics_weekly_view")
 			.select("date, campaign_id, campaign_name, message_count")
-			.gte("date", sevenDaysAgo.toISOString())
 			.order("date", { ascending: true });
 
 		if (error) {
@@ -118,7 +120,7 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 			return emptyAnalytics();
 		}
 
-		return buildAnalytics((data ?? []) as AnalyticsDailyRow[]);
+		return buildAnalytics((data ?? []) as AnalyticsBucketRow[]);
 	} catch (error) {
 		console.warn("Failed to fetch analytics, returning empty data:", error);
 		return emptyAnalytics();
@@ -127,6 +129,15 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 
 export function useAnalytics() {
 	return useQuery<AnalyticsData, Error>({
+		queryKey: ["analytics"],
+		queryFn: fetchAnalytics,
+		refetchInterval: 60000,
+	});
+}
+
+/** Same cache key as {@link useAnalytics}; use inside a React `Suspense` boundary. */
+export function useSuspenseAnalytics() {
+	return useSuspenseQuery<AnalyticsData, Error>({
 		queryKey: ["analytics"],
 		queryFn: fetchAnalytics,
 		refetchInterval: 60000,
