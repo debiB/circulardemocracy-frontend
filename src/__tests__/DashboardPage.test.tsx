@@ -7,179 +7,179 @@ import { DashboardPage } from "@/pages/DashboardPage";
 const mockUseUser = vi.fn();
 
 vi.mock("@/hooks/useUser", () => ({
-	useUser: () => mockUseUser(),
+  useUser: () => mockUseUser(),
 }));
 
 vi.mock("@/components/PageLayout", () => ({
-	PageLayout: ({ children }: any) => (
-		<div data-testid="page-layout">{children}</div>
-	),
+  PageLayout: ({ children }: any) => (
+    <div data-testid="page-layout">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/card", () => ({
-	Card: ({ children, className }: any) => (
-		<div className={className}>{children}</div>
-	),
-	CardHeader: ({ children }: any) => <div>{children}</div>,
-	CardTitle: ({ children, className }: any) => (
-		<h2 className={className}>{children}</h2>
-	),
-	CardContent: ({ children, className }: any) => (
-		<div className={className}>{children}</div>
-	),
+  Card: ({ children, className }: any) => (
+    <div className={className}>{children}</div>
+  ),
+  CardHeader: ({ children }: any) => <div>{children}</div>,
+  CardTitle: ({ children, className }: any) => (
+    <h2 className={className}>{children}</h2>
+  ),
+  CardContent: ({ children, className }: any) => (
+    <div className={className}>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/analytics/AnalyticsContainer", () => ({
-	AnalyticsContainer: ({ timeBucket }: { timeBucket?: "day" | "week" }) => (
-		<div data-testid="analytics-container">{timeBucket}</div>
-	),
+  AnalyticsContainer: ({ timeBucket }: { timeBucket?: "day" | "week" }) => (
+    <div data-testid="analytics-container">{timeBucket}</div>
+  ),
 }));
 
 vi.mock("@/components/dashboard/CampaignsWithoutReplyTemplateCard", () => ({
-	CampaignsWithoutReplyTemplateCard: () => (
-		<div data-testid="campaigns-without-reply-template-card" />
-	),
+  CampaignsWithoutReplyTemplateCard: () => (
+    <div data-testid="campaigns-without-reply-template-card" />
+  ),
 }));
 
 describe("DashboardPage", () => {
-	let queryClient: QueryClient;
+  let queryClient: QueryClient;
 
-	beforeEach(() => {
-		queryClient = new QueryClient({
-			defaultOptions: {
-				queries: {
-					retry: false,
-				},
-			},
-		});
-		vi.clearAllMocks();
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
+    vi.clearAllMocks();
 
-		mockUseUser.mockReturnValue({
-			data: { id: "user-1", email: "test@example.com" },
-		});
-	});
+    mockUseUser.mockReturnValue({
+      data: { id: "user-1", email: "test@example.com" },
+    });
+  });
 
-	const wrapper = ({ children }: { children: React.ReactNode }) => (
-		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 
-	it("renders the dashboard page", () => {
-		render(<DashboardPage />, { wrapper });
+  it("renders the dashboard page", () => {
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByTestId("page-layout")).toBeInTheDocument();
-	});
+    expect(screen.getByTestId("page-layout")).toBeInTheDocument();
+  });
 
-	it("displays welcome message with user name", () => {
-		render(<DashboardPage />, { wrapper });
+  it("displays welcome message with user name", () => {
+    render(<DashboardPage />, { wrapper });
 
-		expect(
-			screen.getByText("Welcome to Circular Democracy!"),
-		).toBeInTheDocument();
-		expect(screen.getByText("Hello, test")).toBeInTheDocument();
-	});
+    expect(
+      screen.getByText("Welcome to Circular Democracy!"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Hello, test")).toBeInTheDocument();
+  });
 
-	it("extracts username from email", () => {
-		mockUseUser.mockReturnValue({
-			data: { id: "user-1", email: "john.doe@example.com" },
-		});
+  it("extracts username from email", () => {
+    mockUseUser.mockReturnValue({
+      data: { id: "user-1", email: "john.doe@example.com" },
+    });
 
-		render(<DashboardPage />, { wrapper });
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByText("Hello, john.doe")).toBeInTheDocument();
-	});
+    expect(screen.getByText("Hello, john.doe")).toBeInTheDocument();
+  });
 
-	it("renders analytics and campaigns sections", () => {
-		render(<DashboardPage />, { wrapper });
+  it("renders analytics and campaigns sections", () => {
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
-		expect(
-			screen.getByTestId("campaigns-without-reply-template-card"),
-		).toBeInTheDocument();
-	});
+    expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("campaigns-without-reply-template-card"),
+    ).toBeInTheDocument();
+  });
 
-	it("returns null when user is not authenticated", () => {
-		mockUseUser.mockReturnValue({
-			data: null,
-		});
+  it("returns null when user is not authenticated", () => {
+    mockUseUser.mockReturnValue({
+      data: null,
+    });
 
-		const { container } = render(<DashboardPage />, { wrapper });
+    const { container } = render(<DashboardPage />, { wrapper });
 
-		expect(container.firstChild).toBeNull();
-	});
+    expect(container.firstChild).toBeNull();
+  });
 
-	it("uses PageLayout wrapper", () => {
-		render(<DashboardPage />, { wrapper });
+  it("uses PageLayout wrapper", () => {
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByTestId("page-layout")).toBeInTheDocument();
-	});
+    expect(screen.getByTestId("page-layout")).toBeInTheDocument();
+  });
 
-	it("renders welcome card and dashboard sections", () => {
-		render(<DashboardPage />, { wrapper });
+  it("renders welcome card and dashboard sections", () => {
+    render(<DashboardPage />, { wrapper });
 
-		expect(
-			screen.getByText("Welcome to Circular Democracy!"),
-		).toBeInTheDocument();
-		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
-	});
+    expect(
+      screen.getByText("Welcome to Circular Democracy!"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
+  });
 
-	it("applies correct styling to welcome card", () => {
-		const { container } = render(<DashboardPage />, { wrapper });
+  it("applies correct styling to welcome card", () => {
+    const { container } = render(<DashboardPage />, { wrapper });
 
-		const card = container.querySelector(".p-4");
-		expect(card).toBeInTheDocument();
-	});
+    const card = container.querySelector(".p-4");
+    expect(card).toBeInTheDocument();
+  });
 
-	it("centers welcome card title", () => {
-		const { container } = render(<DashboardPage />, { wrapper });
+  it("centers welcome card title", () => {
+    const { container } = render(<DashboardPage />, { wrapper });
 
-		const title = container.querySelector(".text-center");
-		expect(title).toBeInTheDocument();
-	});
+    const title = container.querySelector(".text-center");
+    expect(title).toBeInTheDocument();
+  });
 
-	it("displays user email prefix as username", () => {
-		mockUseUser.mockReturnValue({
-			data: { id: "user-1", email: "admin@company.org" },
-		});
+  it("displays user email prefix as username", () => {
+    mockUseUser.mockReturnValue({
+      data: { id: "user-1", email: "admin@company.org" },
+    });
 
-		render(<DashboardPage />, { wrapper });
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByText("Hello, admin")).toBeInTheDocument();
-	});
+    expect(screen.getByText("Hello, admin")).toBeInTheDocument();
+  });
 
-	it("handles user with no email gracefully", () => {
-		mockUseUser.mockReturnValue({
-			data: { id: "user-1", email: null },
-		});
+  it("handles user with no email gracefully", () => {
+    mockUseUser.mockReturnValue({
+      data: { id: "user-1", email: null },
+    });
 
-		render(<DashboardPage />, { wrapper });
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByText("Hello, Guest")).toBeInTheDocument();
-	});
+    expect(screen.getByText("Hello, Guest")).toBeInTheDocument();
+  });
 
-	it("handles user with empty email", () => {
-		mockUseUser.mockReturnValue({
-			data: { id: "user-1", email: "" },
-		});
+  it("handles user with empty email", () => {
+    mockUseUser.mockReturnValue({
+      data: { id: "user-1", email: "" },
+    });
 
-		render(<DashboardPage />, { wrapper });
+    render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByText("Hello, Guest")).toBeInTheDocument();
-	});
+    expect(screen.getByText("Hello, Guest")).toBeInTheDocument();
+  });
 
-	it("uses consistent card styling", () => {
-		const { container } = render(<DashboardPage />, { wrapper });
+  it("uses consistent card styling", () => {
+    const { container } = render(<DashboardPage />, { wrapper });
 
-		const cards = container.querySelectorAll(".p-4");
-		expect(cards.length).toBeGreaterThan(0);
-	});
+    const cards = container.querySelectorAll(".p-4");
+    expect(cards.length).toBeGreaterThan(0);
+  });
 
-	it("renders components in correct order", () => {
-		render(<DashboardPage />, { wrapper });
+  it("renders components in correct order", () => {
+    render(<DashboardPage />, { wrapper });
 
-		const welcomeText = screen.getByText("Welcome to Circular Democracy!");
-		const analyticsContainer = screen.getByTestId("analytics-container");
+    const welcomeText = screen.getByText("Welcome to Circular Democracy!");
+    const analyticsContainer = screen.getByTestId("analytics-container");
 
-		expect(welcomeText).toBeInTheDocument();
-		expect(analyticsContainer).toBeInTheDocument();
-	});
+    expect(welcomeText).toBeInTheDocument();
+    expect(analyticsContainer).toBeInTheDocument();
+  });
 });

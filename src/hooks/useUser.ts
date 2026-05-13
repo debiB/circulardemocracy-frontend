@@ -3,15 +3,15 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 async function fetchCurrentUser(): Promise<User | null> {
-	const { data, error } = await supabase!.auth.getUser();
-	if (error) return null;
+  const { data, error } = await supabase!.auth.getUser();
+  if (error) return null;
 
-	return data.user;
+  return data.user;
 }
 
 export function useUser() {
-	return useSuspenseQuery<User | null, Error>({
-		queryKey: ["currentUser"],
-		queryFn: fetchCurrentUser,
-	});
+  return useSuspenseQuery<User | null, Error>({
+    queryKey: ["currentUser"],
+    queryFn: fetchCurrentUser,
+  });
 }
