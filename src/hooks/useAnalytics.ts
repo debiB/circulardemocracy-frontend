@@ -94,7 +94,11 @@ function buildAnalytics(rows: AnalyticsDailyRow[]): AnalyticsData {
 	};
 }
 
-async function fetchAnalytics(): Promise<AnalyticsData> {
+export type AnalyticsTimeBucket = "day" | "week";
+
+async function fetchAnalytics(
+	timeBucket: AnalyticsTimeBucket,
+): Promise<AnalyticsData> {
 	const {
 		data: { session },
 	} = await getSupabase().auth.getSession();
@@ -104,14 +108,22 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 	}
 
 	try {
-		const sevenDaysAgo = new Date();
-		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-		const { data, error } = await getSupabase()
-			.from("message_analytics_view")
+		const sourceView =
+			timeBucket === "week"
+				? "message_analytics_weekly_view"
+				: "message_analytics_view";
+		let query = getSupabase()
+			.from(sourceView)
 			.select("date, campaign_id, campaign_name, message_count")
-			.gte("date", sevenDaysAgo.toISOString())
 			.order("date", { ascending: true });
+
+		if (timeBucket === "day") {
+			const sevenDaysAgo = new Date();
+			sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+			query = query.gte("date", sevenDaysAgo.toISOString());
+		}
+
+		const { data, error } = await query;
 
 		if (error) {
 			console.error("analytics query returned error:", error);
@@ -125,10 +137,10 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 	}
 }
 
-export function useAnalytics() {
+export function useAnalytics(timeBucket: AnalyticsTimeBucket = "day") {
 	return useQuery<AnalyticsData, Error>({
-		queryKey: ["analytics"],
-		queryFn: fetchAnalytics,
+		queryKey: ["analytics", timeBucket],
+		queryFn: () => fetchAnalytics(timeBucket),
 		refetchInterval: 60000,
 	});
 }
