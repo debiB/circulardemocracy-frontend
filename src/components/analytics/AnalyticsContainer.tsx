@@ -4,10 +4,18 @@ import {
 	type MessageLineChartData,
 } from "@/components/charts/MessageLineChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { type AnalyticsTimeBucket, useAnalytics } from "@/hooks/useAnalytics";
 
-export function AnalyticsContainer() {
-	const { data, isLoading, isError, error } = useAnalytics();
+interface AnalyticsContainerProps {
+	timeBucket?: AnalyticsTimeBucket;
+}
+
+export function AnalyticsContainer({
+	timeBucket = "day",
+}: AnalyticsContainerProps) {
+	const { data, isLoading, isError, error } = useAnalytics(timeBucket);
+	const chartTitle =
+		timeBucket === "week" ? "Messages by week" : "What happened this week";
 
 	const chartData = useMemo<MessageLineChartData[]>(() => {
 		if (!data?.dailyCampaignData) return [];
@@ -22,9 +30,7 @@ export function AnalyticsContainer() {
 		return (
 			<Card className="p-4">
 				<CardHeader>
-					<CardTitle className="text-primary">
-						What happened this week
-					</CardTitle>
+					<CardTitle className="text-primary">{chartTitle}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<div className="flex items-center justify-center h-64">
@@ -59,9 +65,7 @@ export function AnalyticsContainer() {
 		return (
 			<Card className="p-4">
 				<CardHeader>
-					<CardTitle className="text-primary">
-						What happened this week
-					</CardTitle>
+					<CardTitle className="text-primary">{chartTitle}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<div className="flex items-center justify-center h-64">
@@ -77,7 +81,7 @@ export function AnalyticsContainer() {
 	return (
 		<Card className="p-4">
 			<CardHeader>
-				<CardTitle className="text-primary">Analytics</CardTitle>
+				<CardTitle className="text-primary">{chartTitle}</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,7 +113,11 @@ export function AnalyticsContainer() {
 
 				<div>
 					{chartData.length > 0 ? (
-						<MessageLineChart data={chartData} height={400} />
+						<MessageLineChart
+							data={chartData}
+							height={400}
+							timeBucket={timeBucket}
+						/>
 					) : (
 						<div className="flex items-center justify-center h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
 							<p className="text-gray-500 dark:text-gray-400">

@@ -13,12 +13,14 @@ export interface MessageLineChartProps {
 	data: MessageLineChartData[];
 	height?: string | number;
 	className?: string;
+	timeBucket?: "day" | "week";
 }
 
 export function MessageLineChart({
 	data,
 	height = 400,
 	className = "",
+	timeBucket = "day",
 }: MessageLineChartProps) {
 	const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -93,7 +95,7 @@ export function MessageLineChart({
 		grid: {
 			left: "3%",
 			right: "4%",
-			bottom: "3%",
+			bottom: timeBucket === "week" ? "14%" : "3%",
 			top: "15%",
 			containLabel: true,
 		},
@@ -108,8 +110,14 @@ export function MessageLineChart({
 			},
 			axisLabel: {
 				color: isDarkMode ? "#9ca3af" : "#6b7280",
-				rotate: 45,
+				rotate: timeBucket === "week" ? 0 : 45,
 				formatter: (value: string) => {
+					if (timeBucket === "week") {
+						const start = new Date(`${value.slice(0, 10)}T12:00:00`);
+						const end = new Date(start);
+						end.setDate(end.getDate() + 6);
+						return `${start.getMonth() + 1}/${start.getDate()}-${end.getMonth() + 1}/${end.getDate()}`;
+					}
 					const date = new Date(value);
 					return `${date.getMonth() + 1}/${date.getDate()}`;
 				},

@@ -29,9 +29,15 @@ vi.mock("@/components/ui/card", () => ({
 	),
 }));
 
-vi.mock("@/components/component-example", () => ({
-	ComponentExample: () => (
-		<div data-testid="component-example">Example Component</div>
+vi.mock("@/components/analytics/AnalyticsContainer", () => ({
+	AnalyticsContainer: ({ timeBucket }: { timeBucket?: "day" | "week" }) => (
+		<div data-testid="analytics-container">{timeBucket}</div>
+	),
+}));
+
+vi.mock("@/components/dashboard/CampaignsWithoutReplyTemplateCard", () => ({
+	CampaignsWithoutReplyTemplateCard: () => (
+		<div data-testid="campaigns-without-reply-template-card" />
 	),
 }));
 
@@ -82,10 +88,13 @@ describe("DashboardPage", () => {
 		expect(screen.getByText("Hello, john.doe")).toBeInTheDocument();
 	});
 
-	it("renders ComponentExample component", () => {
+	it("renders analytics and campaigns sections", () => {
 		render(<DashboardPage />, { wrapper });
 
-		expect(screen.getByTestId("component-example")).toBeInTheDocument();
+		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
+		expect(
+			screen.getByTestId("campaigns-without-reply-template-card"),
+		).toBeInTheDocument();
 	});
 
 	it("returns null when user is not authenticated", () => {
@@ -104,13 +113,13 @@ describe("DashboardPage", () => {
 		expect(screen.getByTestId("page-layout")).toBeInTheDocument();
 	});
 
-	it("renders welcome card and example component", () => {
+	it("renders welcome card and dashboard sections", () => {
 		render(<DashboardPage />, { wrapper });
 
 		expect(
 			screen.getByText("Welcome to Circular Democracy!"),
 		).toBeInTheDocument();
-		expect(screen.getByTestId("component-example")).toBeInTheDocument();
+		expect(screen.getByTestId("analytics-container")).toBeInTheDocument();
 	});
 
 	it("applies correct styling to welcome card", () => {
@@ -168,9 +177,9 @@ describe("DashboardPage", () => {
 		render(<DashboardPage />, { wrapper });
 
 		const welcomeText = screen.getByText("Welcome to Circular Democracy!");
-		const exampleComponent = screen.getByTestId("component-example");
+		const analyticsContainer = screen.getByTestId("analytics-container");
 
 		expect(welcomeText).toBeInTheDocument();
-		expect(exampleComponent).toBeInTheDocument();
+		expect(analyticsContainer).toBeInTheDocument();
 	});
 });
