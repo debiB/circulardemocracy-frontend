@@ -73,6 +73,23 @@ async function fetchCampaign(campaignId: string): Promise<Campaign> {
   }
 }
 
+/** True if this campaign has at least one reply template (any active state). */
+async function fetchCampaignHasReplyTemplates(
+  campaignId: string,
+): Promise<boolean> {
+  const { count, error } = await getSupabase()
+    .from("reply_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId);
+
+  if (error) {
+    console.error("Error counting reply templates:", error);
+    throw error;
+  }
+
+  return (count ?? 0) > 0;
+}
+
 async function fetchCampaignMessages(
   campaignId: string,
   filterLowConfidence?: boolean,
@@ -144,12 +161,15 @@ export function CampaignMessagesPage() {
     queryFn: () => fetchCampaign(id),
   });
 
-  // TODO: Determine if campaign has reply_template set
-  // This state should come from the campaign data to enable conditional filtering.
-  // If campaign.reply_template_id exists or similar field, use it here.
-  // For now, we fetch ALL messages (filterLowConfidence = false).
-  // Once reply template state is available, pass it to fetchCampaignMessages.
-  const hasReplyTemplate = false; // TODO: Replace with actual state from campaign data
+  const { data: campaignHasReplyTemplates } = useSuspenseQuery<boolean, Error>({
+    queryKey: ["campaign-has-reply-templates", id],
+    queryFn: () => fetchCampaignHasReplyTemplates(id),
+  });
+
+  /** Bulk select + assign-template dialog only when no templates exist yet. */
+  const showManualReplyControls = !campaignHasReplyTemplates;
+
+  const filterLowConfidence = false;
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
@@ -172,9 +192,9 @@ export function CampaignMessagesPage() {
     { messages: Message[]; totalCount: number },
     Error
   >({
-    queryKey: ["campaign-messages", id, hasReplyTemplate, currentPage],
+    queryKey: ["campaign-messages", id, filterLowConfidence, currentPage],
     queryFn: () =>
-      fetchCampaignMessages(id, hasReplyTemplate, currentPage, pageSize),
+      fetchCampaignMessages(id, filterLowConfidence, currentPage, pageSize),
   });
   const allMessages = messagesData?.messages || [];
 
@@ -210,7 +230,7 @@ export function CampaignMessagesPage() {
       // Fetch all messages for export (no pagination)
       const allMessagesData = await fetchCampaignMessages(
         id,
-        hasReplyTemplate,
+        filterLowConfidence,
         1,
         10000,
       );
@@ -341,7 +361,7 @@ export function CampaignMessagesPage() {
             Back to Campaigns
           </Button>
           <div className="flex items-center gap-2">
-            {selectedMessages.size > 0 && (
+            {showManualReplyControls && selectedMessages.size > 0 && (
               <Button
                 onClick={handleCreateReply}
                 className="flex items-center gap-2"
@@ -418,17 +438,19 @@ export function CampaignMessagesPage() {
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
-                      <th className="py-2 px-4 border-b text-left w-12">
-                        <input
-                          type="checkbox"
-                          checked={
-                            messages.length > 0 &&
-                            selectedMessages.size === messages.length
-                          }
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                      </th>
+                      {showManualReplyControls && (
+                        <th className="py-2 px-4 border-b text-left w-12">
+                          <input
+                            type="checkbox"
+                            checked={
+                              messages.length > 0 &&
+                              selectedMessages.size === messages.length
+                            }
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                        </th>
+                      )}
                       <th className="py-2 px-4 border-b text-left">Country</th>
                       <th className="py-2 px-4 border-b text-left">Received</th>
                       <th className="py-2 px-4 border-b text-left">
@@ -448,16 +470,21 @@ export function CampaignMessagesPage() {
                   <tbody>
                     {messages.map((message) => (
                       <tr key={message.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-4 border-b">
-                          <input
-                            type="checkbox"
-                            checked={selectedMessages.has(message.id)}
-                            onChange={(e) =>
-                              handleSelectMessage(message.id, e.target.checked)
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                        </td>
+                        {showManualReplyControls && (
+                          <td className="py-2 px-4 border-b">
+                            <input
+                              type="checkbox"
+                              checked={selectedMessages.has(message.id)}
+                              onChange={(e) =>
+                                handleSelectMessage(
+                                  message.id,
+                                  e.target.checked,
+                                )
+                              }
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                          </td>
+                        )}
                         <td className="py-2 px-4 border-b">
                           {message.sender_country || "-"}
                         </td>
@@ -559,35 +586,37 @@ export function CampaignMessagesPage() {
           />
         )}
 
-        {/* Template Assignment Dialog */}
-        <AlertDialog
-          open={isReplyDialogOpen}
-          onOpenChange={setIsReplyDialogOpen}
-        >
-          <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Assign Reply Template</AlertDialogTitle>
-            </AlertDialogHeader>
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center h-48">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                </div>
-              }
-            >
-              <TemplateAssignment
-                campaignId={campaign.id}
-                campaignName={campaign.name}
-                selectedMessageIds={Array.from(selectedMessages)}
-                onSuccess={() => {
-                  setIsReplyDialogOpen(false);
-                  setSelectedMessages(new Set());
-                }}
-                onCancel={() => setIsReplyDialogOpen(false)}
-              />
-            </Suspense>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Template assignment via message selection — only before any campaign templates exist */}
+        {showManualReplyControls && (
+          <AlertDialog
+            open={isReplyDialogOpen}
+            onOpenChange={setIsReplyDialogOpen}
+          >
+            <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Assign Reply Template</AlertDialogTitle>
+              </AlertDialogHeader>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-48">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                  </div>
+                }
+              >
+                <TemplateAssignment
+                  campaignId={campaign.id}
+                  campaignName={campaign.name}
+                  selectedMessageIds={Array.from(selectedMessages)}
+                  onSuccess={() => {
+                    setIsReplyDialogOpen(false);
+                    setSelectedMessages(new Set());
+                  }}
+                  onCancel={() => setIsReplyDialogOpen(false)}
+                />
+              </Suspense>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         {/* Message Content Display - Placeholder
             RESOLVED: Message content is fetched on-demand via JMAP (not in table)
