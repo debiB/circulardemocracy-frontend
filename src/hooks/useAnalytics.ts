@@ -114,8 +114,7 @@ async function fetchAnalytics(
 				: "message_analytics_view";
 		let query = getSupabase()
 			.from(sourceView)
-			.select("date, campaign_id, campaign_name, message_count")
-			.order("date", { ascending: true });
+			.select("date, campaign_id, campaign_name, message_count");
 
 		if (timeBucket === "day") {
 			const sevenDaysAgo = new Date();
@@ -123,7 +122,7 @@ async function fetchAnalytics(
 			query = query.gte("date", sevenDaysAgo.toISOString());
 		}
 
-		const { data, error } = await query;
+		const { data, error } = await query.order("date", { ascending: true });
 
 		if (error) {
 			console.error("analytics query returned error:", error);
