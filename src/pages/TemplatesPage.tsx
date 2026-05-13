@@ -35,6 +35,7 @@ interface ReplyTemplate {
 	subject: string;
 	body: string;
 	active: boolean;
+	layout_type: string;
 	send_timing: string;
 	scheduled_for: string | null;
 	created_at: string;
@@ -50,7 +51,7 @@ async function fetchReplyTemplates(): Promise<TemplateWithCampaign[]> {
 		const { data, error } = await getSupabase()
 			.from("reply_templates_with_campaign")
 			.select(
-				"id, campaign_id, campaign_name, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
+				"id, campaign_id, campaign_name, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
 			)
 			.order("campaign_id", { ascending: true })
 			.order("id", { ascending: false });
@@ -196,6 +197,9 @@ function TemplatesList() {
 									editingTemplate
 										? {
 												...editingTemplate,
+												layout_type: editingTemplate.layout_type as
+													| "text_only"
+													| "standard_header",
 												send_timing: editingTemplate.send_timing as
 													| "immediate"
 													| "office_hours"
@@ -226,7 +230,8 @@ export function TemplatesPage() {
 					<div>
 						<h1 className="text-3xl font-bold text-primary">Reply Templates</h1>
 						<p className="text-gray-600 mt-2">
-							Manage your automated reply templates for different campaigns
+							Manage reply templates per campaign. You can keep several
+							templates; only one may be active at a time.
 						</p>
 					</div>
 

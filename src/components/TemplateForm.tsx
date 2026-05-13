@@ -26,9 +26,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/lib/api";
+import {
+	insertReplyTemplate,
+	type ReplyTemplateInsertPayload,
+	updateReplyTemplate,
+} from "@/lib/replyTemplateMutations";
 import { getSupabase } from "@/lib/supabase";
-import { getApiErrorMessage } from "@/lib/utils";
 
 interface Campaign {
 	id: number;
@@ -96,107 +99,24 @@ async function fetchCampaigns(): Promise<Campaign[]> {
 	}
 }
 
-async function createTemplate(
-	templateData: Omit<TemplateFormData, "active">,
-): Promise<any> {
-	try {
-		const payload = {
-			...templateData,
-			body: templateData.body || "",
-			layout_type: templateData.layout_type || "standard_header",
-		};
+function buildInsertPayload(
+	data: TemplateFormData,
+): ReplyTemplateInsertPayload {
+	const scheduledFor =
+		data.send_timing === "scheduled" && data.scheduled_for?.trim()
+			? new Date(data.scheduled_for).toISOString()
+			: null;
 
-		console.log("Template data sent:", payload);
-
-		const response = await api.post("/api/v1/reply-templates", payload);
-
-		if (!response.ok) {
-			let errorMessage = "Failed to create template";
-			try {
-				const errorText = await response.text();
-				console.error("API Error Response:", errorText);
-				errorMessage = getApiErrorMessage(
-					errorText,
-					"Failed to create template",
-				);
-			} catch (parseError) {
-				console.error("Error parsing error response:", parseError);
-			}
-			throw new Error(errorMessage);
-		}
-
-		const responseText = await response.text();
-		console.log("API Response:", responseText);
-
-		if (!responseText) {
-			throw new Error("Empty response from server");
-		}
-
-		try {
-			return JSON.parse(responseText);
-		} catch (error) {
-			console.error("JSON Parse Error:", error);
-			console.error("Response text:", responseText);
-			throw new Error("Invalid response from server. Please try again.");
-		}
-	} catch (error) {
-		// Re-throw with a user-friendly message
-		const message = getApiErrorMessage(error, "Failed to create template");
-		throw new Error(message);
-	}
-}
-
-async function updateTemplate(
-	id: number,
-	templateData: Partial<Omit<TemplateFormData, "active">>,
-): Promise<any> {
-	try {
-		const payload: Record<string, any> = { ...templateData };
-		if (templateData.body !== undefined) {
-			payload.body = templateData.body || "";
-		}
-		if (!payload.layout_type) {
-			payload.layout_type = "standard_header";
-		}
-
-		console.log("Updating template:", id, payload);
-
-		const response = await api.patch(`/api/v1/reply-templates/${id}`, payload);
-
-		if (!response.ok) {
-			let errorMessage = "Failed to update template";
-			try {
-				const errorText = await response.text();
-				console.error("API Error Response:", errorText);
-				errorMessage = getApiErrorMessage(
-					errorText,
-					"Failed to update template",
-				);
-			} catch (parseError) {
-				console.error("Error parsing error response:", parseError);
-			}
-			throw new Error(errorMessage);
-		}
-
-		const responseText = await response.text();
-		console.log("API Response:", responseText);
-
-		if (!responseText) {
-			throw new Error("Empty response from server");
-		}
-
-		try {
-			return JSON.parse(responseText);
-		} catch (error) {
-			console.error("JSON Parse Error:", error);
-			console.error("Response text:", responseText);
-			throw new Error("Invalid response from server. Please try again.");
-		}
-	} catch (error) {
-		// Re-throw with a user-friendly message
-		const message = getApiErrorMessage(error, "Failed to update template");
-		throw new Error(message);
-	}
+	return {
+		campaign_id: data.campaign_id,
+		name: data.name,
+		subject: data.subject,
+		body: data.body || "",
+		layout_type: data.layout_type || "standard_header",
+		send_timing: data.send_timing,
+		scheduled_for: scheduledFor,
+		active: data.active,
+	};
 }
 
 export function TemplateForm({
@@ -239,9 +159,12 @@ export function TemplateForm({
 	});
 
 	const createMutation = useMutation({
-		mutationFn: createTemplate,
+		mutationFn: (data: TemplateFormData) =>
+			insertReplyTemplate(buildInsertPayload(data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["reply-templates"] });
+			queryClient.invalidateQueries({ queryKey: ["campaigns-with-extras"] });
+			queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
 			toast.success("Template created successfully");
 			onSuccess?.();
 		},
@@ -251,12 +174,12 @@ export function TemplateForm({
 	});
 
 	const updateMutation = useMutation({
-		mutationFn: (data: {
-			id: number;
-			templateData: Partial<Omit<TemplateFormData, "active">>;
-		}) => updateTemplate(data.id, data.templateData),
+		mutationFn: (vars: { id: number; data: TemplateFormData }) =>
+			updateReplyTemplate(vars.id, buildInsertPayload(vars.data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["reply-templates"] });
+			queryClient.invalidateQueries({ queryKey: ["campaigns-with-extras"] });
+			queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
 			toast.success("Template updated successfully");
 			onSuccess?.();
 		},
@@ -267,16 +190,10 @@ export function TemplateForm({
 
 	const onSubmit = async (data: TemplateFormData) => {
 		try {
-			const { active, ...templateData } = data;
-
-			if (data.send_timing !== "scheduled") {
-				delete templateData.scheduled_for;
-			}
-
 			if (isEditMode && initialData?.id) {
-				await updateMutation.mutateAsync({ id: initialData.id, templateData });
+				await updateMutation.mutateAsync({ id: initialData.id, data });
 			} else {
-				await createMutation.mutateAsync(templateData);
+				await createMutation.mutateAsync(data);
 			}
 		} catch (error) {
 			// Error is already handled by mutation's onError callback

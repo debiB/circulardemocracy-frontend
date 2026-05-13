@@ -36,6 +36,8 @@ interface Campaign {
 interface CampaignWithExtras extends Campaign {
 	hasReplyTemplate: boolean;
 	templateId?: number;
+	replyTemplateCount: number;
+	activeReplyTemplateCount: number;
 	messageCount: number;
 }
 
@@ -46,6 +48,7 @@ interface ReplyTemplateDetails {
 	subject: string;
 	body: string;
 	active: boolean;
+	layout_type: "text_only" | "standard_header";
 	send_timing: "immediate" | "office_hours" | "scheduled";
 	scheduled_for: string | null;
 	created_at: string;
@@ -58,7 +61,7 @@ async function fetchTemplateById(
 	const { data, error } = await supabase!
 		.from("reply_templates_with_campaign")
 		.select(
-			"id, campaign_id, name, subject, body, active, send_timing, scheduled_for, created_at, updated_at",
+			"id, campaign_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
 		)
 		.eq("id", templateId)
 		.single();
@@ -75,7 +78,7 @@ async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
 		const { data, error } = await supabase!
 			.from("campaign_with_extra")
 			.select(
-				"id, name, created_at, updated_at, has_reply_template, template_id, message_count",
+				"id, name, created_at, updated_at, has_reply_template, template_id, reply_template_count, active_reply_template_count, message_count",
 			)
 			.gt("message_count", 0)
 			.order("updated_at", { ascending: false });
@@ -91,6 +94,9 @@ async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
 			updated_at: campaign.updated_at,
 			hasReplyTemplate: Boolean(campaign.has_reply_template),
 			templateId: campaign.template_id ?? undefined,
+			replyTemplateCount: Number(campaign.reply_template_count) || 0,
+			activeReplyTemplateCount:
+				Number(campaign.active_reply_template_count) || 0,
 			messageCount: campaign.message_count ?? 0,
 		}));
 	} catch (error) {
@@ -213,7 +219,9 @@ export function CampaignsPage() {
 																}
 															}}
 														>
-															Template Exists
+															{campaign.replyTemplateCount > 1
+																? `${campaign.replyTemplateCount} templates (${campaign.activeReplyTemplateCount} active)`
+																: "Template Exists"}
 														</Badge>
 													) : (
 														<Badge
