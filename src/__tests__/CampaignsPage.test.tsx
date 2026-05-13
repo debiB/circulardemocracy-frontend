@@ -139,6 +139,9 @@ describe("CampaignsPage", () => {
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
           hasReplyTemplate: true,
+          templateId: 10,
+          replyTemplateCount: 1,
+          activeReplyTemplateCount: 1,
           messageCount: 25,
         },
         {
@@ -147,6 +150,8 @@ describe("CampaignsPage", () => {
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
           hasReplyTemplate: false,
+          replyTemplateCount: 0,
+          activeReplyTemplateCount: 0,
           messageCount: 0,
         },
       ],
@@ -185,6 +190,9 @@ describe("CampaignsPage", () => {
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
           hasReplyTemplate: true,
+          templateId: 99,
+          replyTemplateCount: 1,
+          activeReplyTemplateCount: 1,
           messageCount: 10,
         },
       ],
@@ -207,6 +215,8 @@ describe("CampaignsPage", () => {
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
           hasReplyTemplate: false,
+          replyTemplateCount: 0,
+          activeReplyTemplateCount: 0,
           messageCount: 0,
         },
       ],
@@ -236,6 +246,9 @@ describe("CampaignsPage", () => {
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
           hasReplyTemplate: true,
+          templateId: 10,
+          replyTemplateCount: 1,
+          activeReplyTemplateCount: 1,
           messageCount: 25,
         },
       ],
@@ -258,6 +271,8 @@ describe("CampaignsPage", () => {
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
           hasReplyTemplate: false,
+          replyTemplateCount: 0,
+          activeReplyTemplateCount: 0,
           messageCount: 1,
         },
         {
@@ -266,6 +281,8 @@ describe("CampaignsPage", () => {
           created_at: "2024-02-01T00:00:00Z",
           updated_at: "2024-02-02T00:00:00Z",
           hasReplyTemplate: false,
+          replyTemplateCount: 0,
+          activeReplyTemplateCount: 0,
           messageCount: 5,
         },
       ],
@@ -286,6 +303,9 @@ describe("CampaignsPage", () => {
           created_at: "2024-01-01T00:00:00Z",
           updated_at: "2024-01-02T00:00:00Z",
           hasReplyTemplate: true,
+          templateId: 10,
+          replyTemplateCount: 1,
+          activeReplyTemplateCount: 1,
           messageCount: 10,
         },
       ],
@@ -296,5 +316,27 @@ describe("CampaignsPage", () => {
     const campaignRow = screen.getByText("Climate Action").closest("tr");
     expect(campaignRow).toHaveClass("cursor-pointer");
     expect(campaignRow).toHaveClass("hover:bg-gray-50");
+  });
+
+  it("shows aggregate template label when a campaign has multiple templates", () => {
+    mockUseSuspenseQuery.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          name: "Multi Template Campaign",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-02T00:00:00Z",
+          hasReplyTemplate: true,
+          templateId: 50,
+          replyTemplateCount: 3,
+          activeReplyTemplateCount: 1,
+          messageCount: 2,
+        },
+      ],
+    });
+
+    renderCampaignsPage();
+
+    expect(screen.getByText("3 templates (1 active)")).toBeInTheDocument();
   });
 });
