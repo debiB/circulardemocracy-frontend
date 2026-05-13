@@ -4,7 +4,7 @@ import { PageLayout } from "@/components/PageLayout";
 export const AnalyticsPage = () => {
 	return (
 		<PageLayout>
-			<AnalyticsContainer />
+			<AnalyticsContainer timeBucket="week" />
 		</PageLayout>
 	);
 };

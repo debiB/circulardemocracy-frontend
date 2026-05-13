@@ -26,7 +26,10 @@ const { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom } = vi.hoisted(
 		const mockGetSession = vi.fn();
 		const mockAnalyticsOrder = vi.fn();
 		const mockAnalyticsGte = vi.fn(() => ({ order: mockAnalyticsOrder }));
-		const mockAnalyticsSelect = vi.fn(() => ({ gte: mockAnalyticsGte }));
+		const mockAnalyticsSelect = vi.fn(() => ({
+			gte: mockAnalyticsGte,
+			order: mockAnalyticsOrder,
+		}));
 		const mockAnalyticsFrom = vi.fn(() => ({ select: mockAnalyticsSelect }));
 		return { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom };
 	},
@@ -256,7 +259,7 @@ describe("useAnalytics Hook", () => {
 		await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
 		const queryCache = queryClient.getQueryCache();
-		const queries = queryCache.findAll({ queryKey: ["analytics"] });
+		const queries = queryCache.findAll({ queryKey: ["analytics", "day"] });
 
 		expect(queries.length).toBe(1);
 	});
