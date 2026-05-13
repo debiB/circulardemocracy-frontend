@@ -77,7 +77,8 @@ async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
 			.select(
 				"id, name, created_at, updated_at, has_reply_template, template_id, message_count",
 			)
-			.order("id", { ascending: true });
+			.gt("message_count", 0)
+			.order("updated_at", { ascending: false });
 
 		if (error) {
 			throw error;
