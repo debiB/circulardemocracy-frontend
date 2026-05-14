@@ -59,7 +59,6 @@ export function CampaignsWithoutReplyTemplateCard() {
                       className="max-w-xs text-left"
                     >
                       <p className="font-medium">{campaign.name}</p>
-                      
                     </TooltipContent>
                   </Tooltip>
                 ))}

@@ -1,10 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  History,
-} from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageLayout } from "@/components/PageLayout";
