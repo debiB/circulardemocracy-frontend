@@ -77,15 +77,13 @@ function createTestQueryClient() {
   });
 }
 
-/** Mocks the three `useSuspenseQuery` calls on CampaignMessagesPage in order. */
+/** Mocks the two `useSuspenseQuery` calls on CampaignMessagesPage in order. */
 function mockCampaignMessagesQueries(
   campaign: Record<string, unknown>,
   messagesPayload: { messages: unknown[]; totalCount: number },
-  hasReplyTemplates = false,
 ) {
   mockUseSuspenseQuery
     .mockReturnValueOnce(createMockQueryResult(campaign))
-    .mockReturnValueOnce(createMockQueryResult(hasReplyTemplates))
     .mockReturnValueOnce(createMockQueryResult(messagesPayload));
 }
 
@@ -254,7 +252,7 @@ describe("CampaignMessagesPage", () => {
       expect(screen.getByText("Reply Status")).toBeInTheDocument();
     });
 
-    it("hides bulk reply UI when the campaign already has reply templates", () => {
+    it("does not render manual reply controls (checkboxes or create reply)", () => {
       mockCampaignMessagesQueries(
         {
           id: 1,
@@ -279,7 +277,6 @@ describe("CampaignMessagesPage", () => {
           ],
           totalCount: 1,
         },
-        true,
       );
 
       renderCampaignMessagesPage("1");

@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useCampaignsWithoutReplyTemplate } from "@/hooks/useCampaignsWithoutReplyTemplate";
 
 const PAGE_SIZE = 10;
@@ -39,14 +44,24 @@ export function CampaignsWithoutReplyTemplateCard() {
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
               <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-10 gap-2">
                 {pageItems.map((campaign) => (
-                  <Link
-                    key={campaign.campaignId}
-                    to={`/campaigns/${campaign.campaignId}`}
-                    title={campaign.name}
-                    className="block truncate rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-100 dark:hover:bg-gray-800"
-                  >
-                    {campaign.name}
-                  </Link>
+                  <Tooltip key={campaign.campaignId}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={`/campaigns/${campaign.campaignId}`}
+                        className="block truncate rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-center text-sm font-medium text-gray-900 outline-offset-2 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-primary dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {campaign.name}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      sideOffset={6}
+                      className="max-w-xs text-left"
+                    >
+                      <p className="font-medium">{campaign.name}</p>
+                      
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             </div>

@@ -4,9 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   History,
-  Mail,
 } from "lucide-react";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
@@ -16,13 +15,6 @@ import {
   ReplyStatusFilter,
   type ReplyStatusType,
 } from "@/components/ReplyStatus";
-import { TemplateAssignment } from "@/components/TemplateAssignment";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabase } from "@/lib/supabase";
@@ -71,23 +63,6 @@ async function fetchCampaign(campaignId: string): Promise<Campaign> {
     console.error("Error fetching campaign:", error);
     throw error; // Re-throw for error boundary
   }
-}
-
-/** True if this campaign has at least one reply template (any active state). */
-async function fetchCampaignHasReplyTemplates(
-  campaignId: string,
-): Promise<boolean> {
-  const { count, error } = await getSupabase()
-    .from("reply_templates")
-    .select("id", { count: "exact", head: true })
-    .eq("campaign_id", campaignId);
-
-  if (error) {
-    console.error("Error counting reply templates:", error);
-    throw error;
-  }
-
-  return (count ?? 0) > 0;
 }
 
 async function fetchCampaignMessages(
@@ -161,23 +136,9 @@ export function CampaignMessagesPage() {
     queryFn: () => fetchCampaign(id),
   });
 
-  const { data: campaignHasReplyTemplates } = useSuspenseQuery<boolean, Error>({
-    queryKey: ["campaign-has-reply-templates", id],
-    queryFn: () => fetchCampaignHasReplyTemplates(id),
-  });
-
-  /** Bulk select + assign-template dialog only when no templates exist yet. */
-  const showManualReplyControls = !campaignHasReplyTemplates;
-
   const filterLowConfidence = false;
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
-
-  // Message selection state
-  const [selectedMessages, setSelectedMessages] = useState<Set<number>>(
-    new Set(),
-  );
-  const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
 
   // Reply status filter
   const [replyStatusFilter, setReplyStatusFilter] = useState<
@@ -293,39 +254,6 @@ export function CampaignMessagesPage() {
     }
   };
 
-  // Message selection handlers
-  const handleSelectMessage = (messageId: number, checked: boolean) => {
-    setSelectedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(messageId);
-      } else {
-        newSet.delete(messageId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      // Defensive: ensure messages is an array and filter out invalid entries
-      const validMessageIds = (messages || [])
-        .filter((m) => m?.id != null)
-        .map((m) => m.id);
-      setSelectedMessages(new Set(validMessageIds));
-    } else {
-      setSelectedMessages(new Set());
-    }
-  };
-
-  const handleCreateReply = () => {
-    if (selectedMessages.size === 0) {
-      alert("Please select at least one message");
-      return;
-    }
-    setIsReplyDialogOpen(true);
-  };
-
   // JMAP Integration Point: On-demand message content fetching
   const handleViewMessage = (messageId: number) => {
     // TODO: Implement JMAP integration to fetch message content from Stalwart
@@ -361,15 +289,6 @@ export function CampaignMessagesPage() {
             Back to Campaigns
           </Button>
           <div className="flex items-center gap-2">
-            {showManualReplyControls && selectedMessages.size > 0 && (
-              <Button
-                onClick={handleCreateReply}
-                className="flex items-center gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                Create Reply ({selectedMessages.size})
-              </Button>
-            )}
             <Button onClick={handleExport} variant="outline">
               Export CSV
             </Button>
@@ -438,19 +357,6 @@ export function CampaignMessagesPage() {
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
-                      {showManualReplyControls && (
-                        <th className="py-2 px-4 border-b text-left w-12">
-                          <input
-                            type="checkbox"
-                            checked={
-                              messages.length > 0 &&
-                              selectedMessages.size === messages.length
-                            }
-                            onChange={(e) => handleSelectAll(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                        </th>
-                      )}
                       <th className="py-2 px-4 border-b text-left">Country</th>
                       <th className="py-2 px-4 border-b text-left">Received</th>
                       <th className="py-2 px-4 border-b text-left">
@@ -470,21 +376,6 @@ export function CampaignMessagesPage() {
                   <tbody>
                     {messages.map((message) => (
                       <tr key={message.id} className="hover:bg-gray-50">
-                        {showManualReplyControls && (
-                          <td className="py-2 px-4 border-b">
-                            <input
-                              type="checkbox"
-                              checked={selectedMessages.has(message.id)}
-                              onChange={(e) =>
-                                handleSelectMessage(
-                                  message.id,
-                                  e.target.checked,
-                                )
-                              }
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                          </td>
-                        )}
                         <td className="py-2 px-4 border-b">
                           {message.sender_country || "-"}
                         </td>
@@ -584,38 +475,6 @@ export function CampaignMessagesPage() {
             open={!!replyHistoryMessage}
             onOpenChange={(open) => !open && setReplyHistoryMessage(null)}
           />
-        )}
-
-        {/* Template assignment via message selection — only before any campaign templates exist */}
-        {showManualReplyControls && (
-          <AlertDialog
-            open={isReplyDialogOpen}
-            onOpenChange={setIsReplyDialogOpen}
-          >
-            <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Assign Reply Template</AlertDialogTitle>
-              </AlertDialogHeader>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-48">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                  </div>
-                }
-              >
-                <TemplateAssignment
-                  campaignId={campaign.id}
-                  campaignName={campaign.name}
-                  selectedMessageIds={Array.from(selectedMessages)}
-                  onSuccess={() => {
-                    setIsReplyDialogOpen(false);
-                    setSelectedMessages(new Set());
-                  }}
-                  onCancel={() => setIsReplyDialogOpen(false)}
-                />
-              </Suspense>
-            </AlertDialogContent>
-          </AlertDialog>
         )}
 
         {/* Message Content Display - Placeholder
