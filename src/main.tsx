@@ -14,37 +14,37 @@ const supabaseInitializationError = getSupabaseError();
 const queryClient = new QueryClient();
 
 if (supabaseInitializationError) {
-	createRoot(document.getElementById("root")!).render(
-		<div
-			style={{
-				padding: "20px",
-				color: "red",
-				backgroundColor: "#fee",
-				border: "1px solid red",
-			}}
-		>
-			<h1>Configuration Error</h1>
-			<p>{supabaseInitializationError}</p>
-			<p>
-				Please set your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment
-				variables.
-			</p>
-		</div>,
-	);
+  createRoot(document.getElementById("root")!).render(
+    <div
+      style={{
+        padding: "20px",
+        color: "red",
+        backgroundColor: "#fee",
+        border: "1px solid red",
+      }}
+    >
+      <h1>Configuration Error</h1>
+      <p>{supabaseInitializationError}</p>
+      <p>
+        Please set your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment
+        variables.
+      </p>
+    </div>,
+  );
 } else {
-	createRoot(document.getElementById("root")!).render(
-		<StrictMode>
-			<ErrorBoundary>
-				<QueryClientProvider client={queryClient}>
-					<BrowserRouter>
-						<AuthProvider>
-							<App />
-							<Toaster />
-						</AuthProvider>
-					</BrowserRouter>
-					<ReactQueryDevtools initialIsOpen={false} />
-				</QueryClientProvider>
-			</ErrorBoundary>
-		</StrictMode>,
-	);
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+              <Toaster />
+            </AuthProvider>
+          </BrowserRouter>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
 }
