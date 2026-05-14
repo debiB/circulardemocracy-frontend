@@ -1,19 +1,9 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { CampaignReplyTemplatesDialog } from "@/components/dashboard/CampaignReplyTemplatesDialog";
 import { PageLayout } from "@/components/PageLayout"; // Import PageLayout
-import { TemplateForm } from "@/components/TemplateForm";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
 import { supabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils"; // Import the new utility
@@ -39,38 +29,6 @@ interface CampaignWithExtras extends Campaign {
   replyTemplateCount: number;
   activeReplyTemplateCount: number;
   messageCount: number;
-}
-
-interface ReplyTemplateDetails {
-  id: number;
-  campaign_id: number;
-  name: string;
-  subject: string;
-  body: string;
-  active: boolean;
-  layout_type: "text_only" | "standard_header";
-  send_timing: "immediate" | "office_hours" | "scheduled";
-  scheduled_for: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-async function fetchTemplateById(
-  templateId: number,
-): Promise<ReplyTemplateDetails> {
-  const { data, error } = await supabase!
-    .from("reply_templates_with_campaign")
-    .select(
-      "id, campaign_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
-    )
-    .eq("id", templateId)
-    .single();
-
-  if (error || !data) {
-    throw error ?? new Error("Failed to fetch template");
-  }
-
-  return data as ReplyTemplateDetails;
 }
 
 async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
@@ -107,14 +65,10 @@ async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
 
 export function CampaignsPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
-    null,
-  );
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] =
-    useState<ReplyTemplateDetails | null>(null);
+  const [templatesDialogCampaign, setTemplatesDialogCampaign] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   const { data: campaigns } = useSuspenseQuery<CampaignWithExtras[], Error>({
     queryKey: ["campaigns-with-extras"],
@@ -198,25 +152,12 @@ export function CampaignsPage() {
                             <Badge
                               variant="default"
                               className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer transition-colors"
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                if (!campaign.templateId) {
-                                  toast.error("Template ID not found");
-                                  return;
-                                }
-                                try {
-                                  const template = await fetchTemplateById(
-                                    campaign.templateId,
-                                  );
-                                  setEditingTemplate(template);
-                                  setIsEditDialogOpen(true);
-                                } catch (error) {
-                                  console.error(
-                                    "Error fetching template:",
-                                    error,
-                                  );
-                                  toast.error("Failed to load template");
-                                }
+                                setTemplatesDialogCampaign({
+                                  id: campaign.id,
+                                  name: campaign.name,
+                                });
                               }}
                             >
                               {campaign.replyTemplateCount > 1
@@ -229,8 +170,10 @@ export function CampaignsPage() {
                               className="text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedCampaignId(campaign.id);
-                                setIsCreateDialogOpen(true);
+                                setTemplatesDialogCampaign({
+                                  id: campaign.id,
+                                  name: campaign.name,
+                                });
                               }}
                             >
                               No Template
@@ -251,99 +194,16 @@ export function CampaignsPage() {
         </CardContent>
       </Card>
 
-      {/* Create Template Dialog */}
-      <AlertDialog
-        open={isCreateDialogOpen}
+      <CampaignReplyTemplatesDialog
+        open={templatesDialogCampaign !== null}
         onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
-          if (!open) setSelectedCampaignId(null);
+          if (!open) {
+            setTemplatesDialogCampaign(null);
+          }
         }}
-      >
-        <AlertDialogContent className="!w-[90vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader className="flex flex-row items-center justify-between">
-            <AlertDialogTitle>Create Reply Template</AlertDialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                setIsCreateDialogOpen(false);
-                setSelectedCampaignId(null);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AlertDialogHeader>
-          <AlertDialogDescription>
-            Create an automated reply template for this campaign. The template
-            will be used to send responses to supporters.
-          </AlertDialogDescription>
-          <Suspense fallback={<LoadingSpinner />}>
-            {selectedCampaignId && (
-              <TemplateForm
-                initialData={{ campaign_id: selectedCampaignId }}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["campaigns-with-extras"],
-                  });
-                  setIsCreateDialogOpen(false);
-                  setSelectedCampaignId(null);
-                }}
-                onCancel={() => {
-                  setIsCreateDialogOpen(false);
-                  setSelectedCampaignId(null);
-                }}
-              />
-            )}
-          </Suspense>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Template Dialog */}
-      <AlertDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <AlertDialogContent className="!w-[90vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader className="flex flex-row items-center justify-between">
-            <AlertDialogTitle>Edit Reply Template</AlertDialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                setIsEditDialogOpen(false);
-                setEditingTemplate(null);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AlertDialogHeader>
-          <AlertDialogDescription>
-            Edit the automated reply template for this campaign. Changes will be
-            applied to future automated responses.
-          </AlertDialogDescription>
-          <Suspense fallback={<LoadingSpinner />}>
-            {editingTemplate && (
-              <TemplateForm
-                initialData={{
-                  ...editingTemplate,
-                  send_timing: editingTemplate.send_timing,
-                  scheduled_for: editingTemplate.scheduled_for || undefined,
-                }}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["campaigns-with-extras"],
-                  });
-                  setIsEditDialogOpen(false);
-                  setEditingTemplate(null);
-                }}
-                onCancel={() => {
-                  setIsEditDialogOpen(false);
-                  setEditingTemplate(null);
-                }}
-              />
-            )}
-          </Suspense>
-        </AlertDialogContent>
-      </AlertDialog>
+        campaignId={templatesDialogCampaign?.id ?? null}
+        campaignName={templatesDialogCampaign?.name ?? ""}
+      />
     </PageLayout>
   );
 }

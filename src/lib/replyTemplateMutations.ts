@@ -109,3 +109,19 @@ export async function updateReplyTemplate(
     throw new Error("Template not found or you do not have access.");
   }
 }
+
+export async function deleteReplyTemplate(id: number): Promise<void> {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("reply_templates")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to delete template"));
+  }
+  if (!data?.length) {
+    throw new Error("Template not found or you do not have access.");
+  }
+}
