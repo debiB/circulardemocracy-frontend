@@ -133,7 +133,9 @@ describe("TemplatesPage", () => {
 
     expect(screen.getByText("Reply Templates")).toBeInTheDocument();
     expect(
-      screen.getByText(/Manage your automated reply templates/i),
+      screen.getByText(
+        /Manage reply templates per campaign\. You can keep several templates; only one may be active at a time\./i,
+      ),
     ).toBeInTheDocument();
   });
 

@@ -75,7 +75,20 @@ export function App() {
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/profile"
+            element={
+              <Suspense
+                fallback={
+                  <PageLayout centerContent={true}>
+                    <LoadingSpinner />
+                  </PageLayout>
+                }
+              >
+                <ProfilePage />
+              </Suspense>
+            }
+          />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route
             path="/campaigns/:id"

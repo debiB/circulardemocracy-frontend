@@ -1,14 +1,7 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  History,
-  Mail,
-} from "lucide-react";
-import { Suspense, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowLeft, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
 import {
@@ -17,18 +10,10 @@ import {
   ReplyStatusFilter,
   type ReplyStatusType,
 } from "@/components/ReplyStatus";
-import { TemplateAssignment } from "@/components/TemplateAssignment";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
-import { api } from "@/lib/api";
 
 interface Campaign {
   id: number;
@@ -50,20 +35,6 @@ interface Message {
   reply_template_id: number | null;
   processing_status: string;
   // Note: sender_hash removed from interface as sender info is not displayed
-}
-
-interface BroadcastResponse {
-  success: boolean;
-  campaign_id: number;
-  supporter_count: number;
-  recipient_count?: number;
-  messages_created: number;
-  failures: number;
-  replies_sent?: number;
-  replies_failed?: number;
-  jmap_ready?: boolean;
-  first_send_error?: string;
-  error?: string;
 }
 
 async function fetchCampaign(campaignId: string): Promise<Campaign> {
@@ -142,7 +113,6 @@ async function fetchCampaignMessages(
 export function CampaignMessagesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   if (!id) {
     return (
@@ -161,20 +131,9 @@ export function CampaignMessagesPage() {
     queryFn: () => fetchCampaign(id),
   });
 
-  // TODO: Determine if campaign has reply_template set
-  // This state should come from the campaign data to enable conditional filtering.
-  // If campaign.reply_template_id exists or similar field, use it here.
-  // For now, we fetch ALL messages (filterLowConfidence = false).
-  // Once reply template state is available, pass it to fetchCampaignMessages.
-  const hasReplyTemplate = false; // TODO: Replace with actual state from campaign data
+  const filterLowConfidence = false;
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
-
-  // Message selection state
-  const [selectedMessages, setSelectedMessages] = useState<Set<number>>(
-    new Set(),
-  );
-  const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
 
   // Reply status filter
   const [replyStatusFilter, setReplyStatusFilter] = useState<
@@ -189,9 +148,9 @@ export function CampaignMessagesPage() {
     { messages: Message[]; totalCount: number },
     Error
   >({
-    queryKey: ["campaign-messages", id, hasReplyTemplate, currentPage],
+    queryKey: ["campaign-messages", id, filterLowConfidence, currentPage],
     queryFn: () =>
-      fetchCampaignMessages(id, hasReplyTemplate, currentPage, pageSize),
+      fetchCampaignMessages(id, filterLowConfidence, currentPage, pageSize),
   });
   const allMessages = messagesData?.messages || [];
 
@@ -227,7 +186,7 @@ export function CampaignMessagesPage() {
       // Fetch all messages for export (no pagination)
       const allMessagesData = await fetchCampaignMessages(
         id,
-        hasReplyTemplate,
+        filterLowConfidence,
         1,
         10000,
       );
@@ -290,83 +249,6 @@ export function CampaignMessagesPage() {
     }
   };
 
-  // Message selection handlers
-  const handleSelectMessage = (messageId: number, checked: boolean) => {
-    setSelectedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(messageId);
-      } else {
-        newSet.delete(messageId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      // Defensive: ensure messages is an array and filter out invalid entries
-      const validMessageIds = (messages || [])
-        .filter((m) => m?.id != null)
-        .map((m) => m.id);
-      setSelectedMessages(new Set(validMessageIds));
-    } else {
-      setSelectedMessages(new Set());
-    }
-  };
-
-  const handleCreateReply = () => {
-    if (selectedMessages.size === 0) {
-      alert("Please select at least one message");
-      return;
-    }
-    setIsReplyDialogOpen(true);
-  };
-
-  const handleBroadcastReplies = async () => {
-    try {
-      const response = await api.post(
-        `/api/v1/campaigns/${campaign.id}/replies/broadcast`,
-      );
-      const data = (await response.json()) as BroadcastResponse;
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to queue broadcast replies");
-      }
-
-      if (data.jmap_ready === false) {
-        toast.warning(
-          `Prepared ${data.messages_created} replies; Stalwart JMAP is not configured on the API, so nothing was sent yet. Set STALWART_JMAP_ENDPOINT, STALWART_JMAP_ACCOUNT_ID, STALWART_USERNAME, STALWART_APP_PASSWORD in the backend .env (or wait for the scheduled worker in production).`,
-        );
-      } else if (data.jmap_ready === true) {
-        if ((data.replies_failed ?? 0) > 0) {
-          const detail = data.first_send_error
-            ? ` ${data.first_send_error}`
-            : "";
-          toast.warning(
-            `Sent ${data.replies_sent ?? 0} of ${data.messages_created}; ${data.replies_failed} failed.${detail}`,
-          );
-        } else {
-          toast.success(
-            `Sent ${data.replies_sent ?? data.messages_created} campaign ${data.messages_created === 1 ? "reply" : "replies"}.`,
-          );
-        }
-      } else {
-        toast.success(
-          `Queued ${data.messages_created} replies for ${data.supporter_count} supporters.`,
-        );
-      }
-      queryClient.invalidateQueries({ queryKey: ["campaign-messages", id] });
-    } catch (error) {
-      console.error("Broadcast reply error:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to queue campaign broadcast replies",
-      );
-    }
-  };
-
   // JMAP Integration Point: On-demand message content fetching
   const handleViewMessage = (messageId: number) => {
     // TODO: Implement JMAP integration to fetch message content from Stalwart
@@ -402,18 +284,6 @@ export function CampaignMessagesPage() {
             Back to Campaigns
           </Button>
           <div className="flex items-center gap-2">
-            <Button onClick={handleBroadcastReplies} variant="default">
-              Send Active Reply To All Supporters
-            </Button>
-            {selectedMessages.size > 0 && (
-              <Button
-                onClick={handleCreateReply}
-                className="flex items-center gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                Create Reply ({selectedMessages.size})
-              </Button>
-            )}
             <Button onClick={handleExport} variant="outline">
               Export CSV
             </Button>
@@ -482,17 +352,6 @@ export function CampaignMessagesPage() {
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
-                      <th className="py-2 px-4 border-b text-left w-12">
-                        <input
-                          type="checkbox"
-                          checked={
-                            messages.length > 0 &&
-                            selectedMessages.size === messages.length
-                          }
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                      </th>
                       <th className="py-2 px-4 border-b text-left">Country</th>
                       <th className="py-2 px-4 border-b text-left">Received</th>
                       <th className="py-2 px-4 border-b text-left">
@@ -512,16 +371,6 @@ export function CampaignMessagesPage() {
                   <tbody>
                     {messages.map((message) => (
                       <tr key={message.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-4 border-b">
-                          <input
-                            type="checkbox"
-                            checked={selectedMessages.has(message.id)}
-                            onChange={(e) =>
-                              handleSelectMessage(message.id, e.target.checked)
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                        </td>
                         <td className="py-2 px-4 border-b">
                           {message.sender_country || "-"}
                         </td>
@@ -622,36 +471,6 @@ export function CampaignMessagesPage() {
             onOpenChange={(open) => !open && setReplyHistoryMessage(null)}
           />
         )}
-
-        {/* Template Assignment Dialog */}
-        <AlertDialog
-          open={isReplyDialogOpen}
-          onOpenChange={setIsReplyDialogOpen}
-        >
-          <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Assign Reply Template</AlertDialogTitle>
-            </AlertDialogHeader>
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center h-48">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                </div>
-              }
-            >
-              <TemplateAssignment
-                campaignId={campaign.id}
-                campaignName={campaign.name}
-                selectedMessageIds={Array.from(selectedMessages)}
-                onSuccess={() => {
-                  setIsReplyDialogOpen(false);
-                  setSelectedMessages(new Set());
-                }}
-                onCancel={() => setIsReplyDialogOpen(false)}
-              />
-            </Suspense>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Message Content Display - Placeholder
             RESOLVED: Message content is fetched on-demand via JMAP (not in table)

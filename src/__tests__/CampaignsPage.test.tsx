@@ -15,6 +15,30 @@ vi.mock("@tanstack/react-query", () => ({
   }),
 }));
 
+vi.mock("@/components/dashboard/CampaignReplyTemplatesDialog", () => ({
+  CampaignReplyTemplatesDialog: ({
+    open,
+    campaignId,
+    campaignName,
+  }: {
+    open: boolean;
+    campaignId: number | null;
+    campaignName: string;
+  }) =>
+    open ? (
+      <div
+        data-testid="campaign-reply-templates-dialog"
+        data-campaign-id={campaignId ?? ""}
+      >
+        <h2>Reply templates</h2>
+        <p data-testid="dialog-campaign-name">{campaignName}</p>
+        <button type="button" data-testid="add-template-in-dialog">
+          Add template
+        </button>
+      </div>
+    ) : null,
+}));
+
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
@@ -55,20 +79,6 @@ vi.mock("@/components/ui/alert-dialog", () => ({
     <button type="button" onClick={onClick}>
       {children}
     </button>
-  ),
-}));
-
-vi.mock("@/components/TemplateForm", () => ({
-  TemplateForm: ({ onSuccess, onCancel, initialData }: any) => (
-    <div data-testid="template-form">
-      <div data-testid="template-form-data">{JSON.stringify(initialData)}</div>
-      <button type="button" onClick={onSuccess}>
-        Success
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
-    </div>
   ),
 }));
 
@@ -228,13 +238,16 @@ describe("CampaignsPage", () => {
     const noTemplateBadge = screen.getByText("No Template");
     fireEvent.click(noTemplateBadge);
 
-    // Check that the dialog opens and TemplateForm is rendered
-    expect(screen.getByTestId("template-form")).toBeInTheDocument();
-    expect(screen.getByText("Create Reply Template")).toBeInTheDocument();
-
-    // Check that the form is pre-populated with the campaign ID
-    const formData = screen.getByTestId("template-form-data");
-    expect(formData.textContent).toContain('"campaign_id":2');
+    expect(
+      screen.getByTestId("campaign-reply-templates-dialog"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Reply templates")).toBeInTheDocument();
+    expect(screen.getByTestId("dialog-campaign-name")).toHaveTextContent(
+      "Education Reform",
+    );
+    expect(
+      screen.getByTestId("campaign-reply-templates-dialog"),
+    ).toHaveAttribute("data-campaign-id", "2");
   });
 
   it("does not show Create Reply Template button for campaigns with existing templates", () => {

@@ -77,6 +77,16 @@ function createTestQueryClient() {
   });
 }
 
+/** Mocks the two `useSuspenseQuery` calls on CampaignMessagesPage in order. */
+function mockCampaignMessagesQueries(
+  campaign: Record<string, unknown>,
+  messagesPayload: { messages: unknown[]; totalCount: number },
+) {
+  mockUseSuspenseQuery
+    .mockReturnValueOnce(createMockQueryResult(campaign))
+    .mockReturnValueOnce(createMockQueryResult(messagesPayload));
+}
+
 function renderCampaignMessagesPage(campaignId: string) {
   const queryClient = createTestQueryClient();
   return render(
@@ -123,17 +133,16 @@ describe("CampaignMessagesPage", () => {
 
   describe("Basic Rendering", () => {
     it("renders back button that navigates to campaigns list", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(createMockQueryResult([]));
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        { messages: [], totalCount: 0 },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -146,17 +155,16 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("renders export CSV button", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(createMockQueryResult([]));
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        { messages: [], totalCount: 0 },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -165,22 +173,16 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("displays message count when there are messages", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [],
-            totalCount: 0,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        { messages: [], totalCount: 0 },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -191,22 +193,16 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("shows empty state when there are no messages", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [],
-            totalCount: 0,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        { messages: [], totalCount: 0 },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -219,34 +215,31 @@ describe("CampaignMessagesPage", () => {
 
   describe("Message Table Rendering", () => {
     it("renders message table with correct columns", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -259,35 +252,65 @@ describe("CampaignMessagesPage", () => {
       expect(screen.getByText("Reply Status")).toBeInTheDocument();
     });
 
+    it("does not render manual reply controls (checkboxes or create reply)", () => {
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
+
+      renderCampaignMessagesPage("1");
+
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+      expect(screen.queryByText(/create reply/i)).not.toBeInTheDocument();
+    });
+
     it("renders message data correctly", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -299,45 +322,42 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("displays multiple messages correctly", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-              {
-                id: 2,
-                sender_country: "GB",
-                duplicate_rank: 0,
-                classification_confidence: 0.55,
-                language: "en",
-                received_at: "2024-01-16T14:20:00Z",
-                processed_at: "2024-01-16T14:21:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 2,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+            {
+              id: 2,
+              sender_country: "GB",
+              duplicate_rank: 0,
+              classification_confidence: 0.55,
+              language: "en",
+              received_at: "2024-01-16T14:20:00Z",
+              processed_at: "2024-01-16T14:21:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 2,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -351,34 +371,31 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("shows duplicate rank correctly for duplicate messages", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 2,
-                sender_country: "US",
-                duplicate_rank: 2,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 2,
+              sender_country: "US",
+              duplicate_rank: 2,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -386,34 +403,31 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("displays null country as dash", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: null,
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: null,
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -422,45 +436,42 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("applies color coding to confidence levels", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-              {
-                id: 2,
-                sender_country: "GB",
-                duplicate_rank: 0,
-                classification_confidence: 0.55,
-                language: "en",
-                received_at: "2024-01-16T14:20:00Z",
-                processed_at: "2024-01-16T14:21:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+            {
+              id: 2,
+              sender_country: "GB",
+              duplicate_rank: 0,
+              classification_confidence: 0.55,
+              language: "en",
+              received_at: "2024-01-16T14:20:00Z",
+              processed_at: "2024-01-16T14:21:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -472,34 +483,31 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("renders View button for each message", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -508,34 +516,31 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("shows reply sent status correctly", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [
-              {
-                id: 1,
-                sender_country: "US",
-                duplicate_rank: 0,
-                classification_confidence: 0.85,
-                language: "en",
-                received_at: "2024-01-15T10:30:00Z",
-                processed_at: "2024-01-15T10:31:00Z",
-                reply_sent_at: null,
-                processing_status: "processed",
-              },
-            ],
-            totalCount: 1,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        {
+          messages: [
+            {
+              id: 1,
+              sender_country: "US",
+              duplicate_rank: 0,
+              classification_confidence: 0.85,
+              language: "en",
+              received_at: "2024-01-15T10:30:00Z",
+              processed_at: "2024-01-15T10:31:00Z",
+              reply_sent_at: null,
+              processing_status: "processed",
+            },
+          ],
+          totalCount: 1,
+        },
+      );
 
       renderCampaignMessagesPage("1");
 
@@ -547,22 +552,16 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("displays pagination controls when there are many messages", () => {
-      mockUseSuspenseQuery
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            id: 1,
-            name: "Climate Action",
-            slug: "climate-action",
-            description: null,
-            status: "active",
-          }),
-        )
-        .mockReturnValueOnce(
-          createMockQueryResult({
-            messages: [],
-            totalCount: 0,
-          }),
-        );
+      mockCampaignMessagesQueries(
+        {
+          id: 1,
+          name: "Climate Action",
+          slug: "climate-action",
+          description: null,
+          status: "active",
+        },
+        { messages: [], totalCount: 0 },
+      );
 
       renderCampaignMessagesPage("1");
 

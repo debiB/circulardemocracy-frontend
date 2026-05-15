@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +12,8 @@ const mockUseUser = vi.fn<() => { data: { id: string; email: string } | null }>(
   () => mockUseUserValue,
 );
 
-const mockUseQuery = vi.fn();
+const mockUseSuspenseQuery = vi.fn();
+const mockInvalidateQueries = vi.fn();
 
 const mockUpsert = vi.fn();
 const mockFrom = vi.fn<(table: string) => { upsert: typeof mockUpsert }>(
@@ -30,9 +32,16 @@ vi.mock("@/hooks/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mockUseQuery(),
-}));
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  return {
+    ...actual,
+    useSuspenseQuery: () => mockUseSuspenseQuery(),
+    useQueryClient: () => ({
+      invalidateQueries: mockInvalidateQueries,
+    }),
+  };
+});
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -89,13 +98,21 @@ vi.mock("@/components/ui/button", () => ({
 }));
 
 function renderProfilePage() {
-  return render(<ProfilePageComponent />);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ProfilePageComponent />
+    </QueryClientProvider>,
+  );
 }
 
 describe("ProfilePage", () => {
   beforeEach(() => {
     mockUseUser.mockReturnValue(mockUseUserValue);
-    mockUseQuery.mockReset();
+    mockUseSuspenseQuery.mockReset();
+    mockInvalidateQueries.mockReset();
     mockUpsert.mockReset();
     mockFrom.mockClear();
     mockToast.mockClear();
@@ -103,7 +120,6 @@ describe("ProfilePage", () => {
 
   it("does not render when there is no current user (permissions)", () => {
     mockUseUser.mockReturnValue({ data: null });
-    mockUseQuery.mockReturnValue({ data: null, isLoading: false });
 
     const { container } = renderProfilePage();
 
@@ -111,7 +127,9 @@ describe("ProfilePage", () => {
   });
 
   it("shows validation errors when required fields are empty", async () => {
-    mockUseQuery.mockReturnValue({ data: null, isLoading: false });
+    mockUseSuspenseQuery.mockReturnValue({
+      data: { firstname: "", lastname: "", job_title: "" },
+    });
 
     renderProfilePage();
 
@@ -126,14 +144,12 @@ describe("ProfilePage", () => {
   });
 
   it("submits profile data and shows success toast on success", async () => {
-    mockUseQuery.mockReturnValue({
+    mockUseSuspenseQuery.mockReturnValue({
       data: {
-        id: "user-1",
         firstname: "Existing",
         lastname: "User",
         job_title: "Member",
       },
-      isLoading: false,
     });
 
     mockUpsert.mockResolvedValue({ error: null });
@@ -162,19 +178,18 @@ describe("ProfilePage", () => {
         },
         { onConflict: "id" },
       );
+      expect(mockInvalidateQueries).toHaveBeenCalled();
       expect(mockToast).toHaveBeenCalled();
     });
   });
 
   it("shows an inline error when the save fails", async () => {
-    mockUseQuery.mockReturnValue({
+    mockUseSuspenseQuery.mockReturnValue({
       data: {
-        id: "user-1",
         firstname: "Existing",
         lastname: "User",
         job_title: "Member",
       },
-      isLoading: false,
     });
 
     mockUpsert.mockResolvedValue({
