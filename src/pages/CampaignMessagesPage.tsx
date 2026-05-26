@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { CampaignReplyTemplatesDialog } from "@/components/dashboard/CampaignReplyTemplatesDialog";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
 import {
@@ -21,6 +22,9 @@ interface Campaign {
   slug: string;
   description: string | null;
   status: string;
+  hasReplyTemplate: boolean;
+  replyTemplateCount: number;
+  activeReplyTemplateCount: number;
 }
 
 interface Message {
@@ -40,8 +44,10 @@ interface Message {
 async function fetchCampaign(campaignId: string): Promise<Campaign> {
   try {
     const { data, error } = await getSupabase()
-      .from("campaigns")
-      .select("id, name, slug, description, status")
+      .from("campaign_with_extra")
+      .select(
+        "id, name, slug, description, status, has_reply_template, reply_template_count, active_reply_template_count",
+      )
       .eq("id", campaignId)
       .single();
 
@@ -53,7 +59,16 @@ async function fetchCampaign(campaignId: string): Promise<Campaign> {
       throw new Error("Campaign not found");
     }
 
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      description: data.description,
+      status: data.status,
+      hasReplyTemplate: Boolean(data.has_reply_template),
+      replyTemplateCount: Number(data.reply_template_count) || 0,
+      activeReplyTemplateCount: Number(data.active_reply_template_count) || 0,
+    };
   } catch (error) {
     console.error("Error fetching campaign:", error);
     throw error; // Re-throw for error boundary
@@ -143,6 +158,7 @@ export function CampaignMessagesPage() {
   // Reply history dialog
   const [replyHistoryMessage, setReplyHistoryMessage] =
     useState<Message | null>(null);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
 
   const { data: messagesData } = useSuspenseQuery<
     { messages: Message[]; totalCount: number },
@@ -284,6 +300,22 @@ export function CampaignMessagesPage() {
             Back to Campaigns
           </Button>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTemplatesDialogOpen(true)}
+              className={
+                campaign.hasReplyTemplate
+                  ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200"
+                  : "text-black-500 hover:bg-gray-100"
+              }
+            >
+              {campaign.hasReplyTemplate
+                ? campaign.replyTemplateCount > 1
+                  ? `${campaign.replyTemplateCount} templates (${campaign.activeReplyTemplateCount} active)`
+                  : "Update Template"
+                : "Create Template"}
+            </Button>
             <Button onClick={handleExport} variant="outline">
               Export CSV
             </Button>
@@ -462,6 +494,13 @@ export function CampaignMessagesPage() {
             )}
           </CardContent>
         </Card>
+
+        <CampaignReplyTemplatesDialog
+          open={templatesDialogOpen}
+          onOpenChange={setTemplatesDialogOpen}
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+        />
 
         {/* Reply History Dialog */}
         {replyHistoryMessage && (

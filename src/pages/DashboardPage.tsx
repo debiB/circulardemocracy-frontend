@@ -34,10 +34,10 @@ export const DashboardPage = () => {
       </Card>
       <div className="space-y-6 mt-6">
         <Suspense fallback={<DashboardSectionFallback />}>
-          <AnalyticsContainer timeBucket="day" />
+          <CampaignsWithoutReplyTemplateCard />
         </Suspense>
         <Suspense fallback={<DashboardSectionFallback />}>
-          <CampaignsWithoutReplyTemplateCard />
+          <AnalyticsContainer timeBucket="day" />
         </Suspense>
       </div>
     </PageLayout>

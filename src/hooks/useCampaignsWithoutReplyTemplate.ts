@@ -21,6 +21,7 @@ async function fetchCampaignsWithoutReplyTemplate(): Promise<
     .from("campaign_with_extra")
     .select("id, name")
     .eq("has_reply_template", false)
+    .gt("message_count", 0)
     .order("name", { ascending: true });
 
   if (error) {
