@@ -21,6 +21,7 @@ interface AuthContextType {
     data: AuthResponse["data"] | null;
     error: AuthApiError | null;
   }>;
+  signInStalwart: () => Promise<{ error: AuthApiError | null }>;
   signOut: () => Promise<{ error: AuthApiError | null }>;
 }
 
@@ -53,6 +54,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const signInStalwart = async () => {
+    if (!supabase) {
+      return { data: null, error: null };
+    }
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "custom:stalwart",
+      options: {
+        scopes: "openid email profile", // Requests full OIDC context from Stalwart
+        redirectTo: window.location.origin + "/",
+      },
+    });
+    console.log(data, error);
+    return { data, error: error instanceof AuthApiError ? error : null };
+  };
+
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { data: null, error: null };
@@ -81,7 +97,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, loading, signIn, signInStalwart, signUp, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

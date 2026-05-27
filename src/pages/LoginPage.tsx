@@ -12,7 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn, signInStalwart, user } = useAuth();
 
   // Basic redirection if user is already logged in
   if (user) {
@@ -52,6 +52,13 @@ export function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+          <Button
+            className="w-full"
+            disabled={loading}
+            onClick={signInStalwart}
+          >
+            {loading ? "Logging in..." : "Login Stalwart"}
+          </Button>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               id="email"
