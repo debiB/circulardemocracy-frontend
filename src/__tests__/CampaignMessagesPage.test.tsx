@@ -69,6 +69,26 @@ vi.mock("@/lib/supabase", () => {
   };
 });
 
+vi.mock("@/components/dashboard/CampaignReplyTemplatesDialog", () => ({
+  CampaignReplyTemplatesDialog: ({
+    open,
+    campaignId,
+    campaignName,
+  }: {
+    open: boolean;
+    campaignId: number | null;
+    campaignName: string;
+  }) =>
+    open ? (
+      <div
+        data-testid="campaign-reply-templates-dialog"
+        data-campaign-id={campaignId ?? ""}
+      >
+        <p data-testid="dialog-campaign-name">{campaignName}</p>
+      </div>
+    ) : null,
+}));
+
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -77,14 +97,32 @@ function createTestQueryClient() {
   });
 }
 
+function mockCampaign(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    name: "Climate Action",
+    slug: "climate-action",
+    description: null,
+    status: "active",
+    hasReplyTemplate: false,
+    replyTemplateCount: 0,
+    activeReplyTemplateCount: 0,
+    ...overrides,
+  };
+}
+
 /** Mocks the two `useSuspenseQuery` calls on CampaignMessagesPage in order. */
 function mockCampaignMessagesQueries(
   campaign: Record<string, unknown>,
   messagesPayload: { messages: unknown[]; totalCount: number },
 ) {
-  mockUseSuspenseQuery
-    .mockReturnValueOnce(createMockQueryResult(campaign))
-    .mockReturnValueOnce(createMockQueryResult(messagesPayload));
+  mockUseSuspenseQuery.mockImplementation((options) => {
+    const key = options.queryKey[0];
+    if (key === "campaign") {
+      return createMockQueryResult(campaign);
+    }
+    return createMockQueryResult(messagesPayload);
+  });
 }
 
 function renderCampaignMessagesPage(campaignId: string) {
@@ -132,17 +170,54 @@ describe("CampaignMessagesPage", () => {
   });
 
   describe("Basic Rendering", () => {
-    it("renders back button that navigates to campaigns list", () => {
+    it("shows No Template button and opens reply templates dialog", () => {
+      mockCampaignMessagesQueries(mockCampaign(), {
+        messages: [],
+        totalCount: 0,
+      });
+
+      renderCampaignMessagesPage("1");
+
+      const templateButton = screen.getByRole("button", {
+        name: "No Template",
+      });
+      expect(templateButton).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("campaign-reply-templates-dialog"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(templateButton);
+
+      expect(
+        screen.getByTestId("campaign-reply-templates-dialog"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("dialog-campaign-name")).toHaveTextContent(
+        "Climate Action",
+      );
+    });
+
+    it("shows Template Exists button when campaign has templates", () => {
       mockCampaignMessagesQueries(
-        {
-          id: 1,
-          name: "Climate Action",
-          slug: "climate-action",
-          description: null,
-          status: "active",
-        },
+        mockCampaign({
+          hasReplyTemplate: true,
+          replyTemplateCount: 1,
+          activeReplyTemplateCount: 1,
+        }),
         { messages: [], totalCount: 0 },
       );
+
+      renderCampaignMessagesPage("1");
+
+      expect(
+        screen.getByRole("button", { name: "Template Exists" }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders back button that navigates to campaigns list", () => {
+      mockCampaignMessagesQueries(mockCampaign(), {
+        messages: [],
+        totalCount: 0,
+      });
 
       renderCampaignMessagesPage("1");
 
@@ -155,16 +230,10 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("renders export CSV button", () => {
-      mockCampaignMessagesQueries(
-        {
-          id: 1,
-          name: "Climate Action",
-          slug: "climate-action",
-          description: null,
-          status: "active",
-        },
-        { messages: [], totalCount: 0 },
-      );
+      mockCampaignMessagesQueries(mockCampaign(), {
+        messages: [],
+        totalCount: 0,
+      });
 
       renderCampaignMessagesPage("1");
 
@@ -173,16 +242,10 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("displays message count when there are messages", () => {
-      mockCampaignMessagesQueries(
-        {
-          id: 1,
-          name: "Climate Action",
-          slug: "climate-action",
-          description: null,
-          status: "active",
-        },
-        { messages: [], totalCount: 0 },
-      );
+      mockCampaignMessagesQueries(mockCampaign(), {
+        messages: [],
+        totalCount: 0,
+      });
 
       renderCampaignMessagesPage("1");
 
@@ -193,16 +256,10 @@ describe("CampaignMessagesPage", () => {
     });
 
     it("shows empty state when there are no messages", () => {
-      mockCampaignMessagesQueries(
-        {
-          id: 1,
-          name: "Climate Action",
-          slug: "climate-action",
-          description: null,
-          status: "active",
-        },
-        { messages: [], totalCount: 0 },
-      );
+      mockCampaignMessagesQueries(mockCampaign(), {
+        messages: [],
+        totalCount: 0,
+      });
 
       renderCampaignMessagesPage("1");
 
