@@ -23,7 +23,7 @@ async function fetchCampaignsWithoutReplyTemplate(): Promise<
     .select("id, name, message_count")
     .eq("has_reply_template", false)
     .gt("message_count", 0)
-    .order("name", { ascending: true });
+    .order("message_count", { ascending: false });
 
   if (error) {
     throw error;
