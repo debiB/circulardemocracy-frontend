@@ -202,8 +202,7 @@ export function CampaignReplyTemplatesDialog({
               <AlertDialogTitle>Reply templates</AlertDialogTitle>
               <AlertDialogDescription>
                 {campaignName ? `${campaignName} — ` : ""}
-                One template may be active per campaign. Replies are sent by the
-                backend worker, not from this screen.
+                Only one template may be active per campaign.
               </AlertDialogDescription>
             </div>
             <Button

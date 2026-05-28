@@ -147,7 +147,7 @@ export function TemplateForm({
     resolver: zodResolver(templateFormSchema),
     mode: "onChange",
     defaultValues: {
-      name: initialData?.name || "",
+      name: initialData?.name || "default",
       subject: initialData?.subject || "",
       body: initialData?.body ?? "",
       campaign_id: initialData?.campaign_id,
