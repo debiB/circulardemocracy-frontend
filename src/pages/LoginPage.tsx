@@ -12,7 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn, signInStalwart, user } = useAuth();
 
   // Basic redirection if user is already logged in
   if (user) {
@@ -20,6 +20,12 @@ export function LoginPage() {
     // navigate('/');
     return <p>Redirecting...</p>;
   }
+
+  const _signInStalwart = async () => {
+    if (!email && !password) {
+      await signInStalwart();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +77,12 @@ export function LoginPage() {
               required
               disabled={loading}
             />
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              onClick={_signInStalwart}
+            >
               {loading ? "Logging in..." : "Login"}
             </Button>
           </form>
