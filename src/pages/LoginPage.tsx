@@ -21,6 +21,12 @@ export function LoginPage() {
     return <p>Redirecting...</p>;
   }
 
+  const _signInStalwart = async () => {
+    if (!email && !password) {
+      await signInStalwart();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -52,13 +58,6 @@ export function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-          <Button
-            className="w-full"
-            disabled={loading}
-            onClick={signInStalwart}
-          >
-            {loading ? "Logging in..." : "Login Stalwart"}
-          </Button>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               id="email"
@@ -78,7 +77,12 @@ export function LoginPage() {
               required
               disabled={loading}
             />
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              onClick={_signInStalwart}
+            >
               {loading ? "Logging in..." : "Login"}
             </Button>
           </form>
