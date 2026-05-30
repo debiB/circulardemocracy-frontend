@@ -7,14 +7,13 @@ import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
 import {
   getReplyStatus,
-  ReplyStatus,
   ReplyStatusFilter,
   type ReplyStatusType,
 } from "@/components/ReplyStatus";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabase } from "@/lib/supabase";
-import { formatDate } from "@/lib/utils";
+import { formatFullDateTime, formatRelativeTime } from "@/lib/utils";
 
 interface Campaign {
   id: number;
@@ -384,7 +383,6 @@ export function CampaignMessagesPage() {
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
-                      <th className="py-2 px-4 border-b text-left">Country</th>
                       <th className="py-2 px-4 border-b text-left">Received</th>
                       <th className="py-2 px-4 border-b text-left">
                         Confidence
@@ -392,22 +390,18 @@ export function CampaignMessagesPage() {
                       <th className="py-2 px-4 border-b text-left">
                         Duplicate
                       </th>
-                      <th className="py-2 px-4 border-b text-left">Language</th>
                       <th className="py-2 px-4 border-b text-left">Status</th>
-                      <th className="py-2 px-4 border-b text-left">
-                        Reply Status
-                      </th>
                       <th className="py-2 px-4 border-b text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {messages.map((message) => (
                       <tr key={message.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-4 border-b">
-                          {message.sender_country || "-"}
-                        </td>
-                        <td className="py-2 px-4 border-b">
-                          {formatDate(message.received_at)}
+                        <td 
+                          className="py-2 px-4 border-b cursor-help"
+                          title={formatFullDateTime(message.received_at)}
+                        >
+                          {formatRelativeTime(message.received_at)}
                         </td>
                         <td className="py-2 px-4 border-b">
                           <span
@@ -436,9 +430,6 @@ export function CampaignMessagesPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-2 px-4 border-b uppercase text-xs">
-                          {message.language}
-                        </td>
                         <td className="py-2 px-4 border-b">
                           <span
                             className={`px-2 py-1 rounded text-xs ${
@@ -449,13 +440,6 @@ export function CampaignMessagesPage() {
                           >
                             {message.processing_status}
                           </span>
-                        </td>
-                        <td className="py-2 px-4 border-b">
-                          <ReplyStatus
-                            replySentAt={message.reply_sent_at}
-                            replyTemplateId={message.reply_template_id}
-                            variant="badge"
-                          />
                         </td>
                         <td className="py-2 px-4 border-b">
                           <div className="flex gap-1">

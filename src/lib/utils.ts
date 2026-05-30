@@ -13,6 +13,51 @@ export function formatDate(dateString: string): string {
   return `${day}/${month}/${year}`;
 }
 
+export function formatFullDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+export function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
+
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+  if (Math.abs(diffInSeconds) < 60) {
+    return rtf.format(diffInSeconds, "second");
+  }
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (Math.abs(diffInMinutes) < 60) {
+    return rtf.format(diffInMinutes, "minute");
+  }
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (Math.abs(diffInHours) < 24) {
+    return rtf.format(diffInHours, "hour");
+  }
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (Math.abs(diffInDays) < 30) {
+    return rtf.format(diffInDays, "day");
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (Math.abs(diffInMonths) < 12) {
+    return rtf.format(diffInMonths, "month");
+  }
+
+  const diffInYears = Math.floor(diffInDays / 365);
+  return rtf.format(diffInYears, "year");
+}
+
 /**
  * Extract a user-friendly error message from an API error response
  * Handles various error formats from the backend API

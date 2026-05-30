@@ -54,7 +54,12 @@ export function LoginPage() {
     <PageLayout centerContent={true} standalone={true}>
       <Card className="w-96">
         <CardHeader>
-          <CardTitle className="text-primary text-center">Login</CardTitle>
+          <CardTitle
+            className="text-primary text-center"
+            onClick={signInStalwart}
+          >
+            Login
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}

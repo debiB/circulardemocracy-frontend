@@ -81,19 +81,6 @@ export function Navbar() {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link
-                  to="/contact"
-                  className="font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Help
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem className="font-medium text-gray-700">
-              Hello, {displayUserName}
-            </NavigationMenuItem>
           </>
         )}
         {!authUser && (
@@ -122,7 +109,11 @@ export function Navbar() {
         )}
         {authUser && (
           <NavigationMenuItem>
-            <Button variant="ghost" onClick={handleLogout}>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              title={displayUserName}
+            >
               Logout
             </Button>
           </NavigationMenuItem>

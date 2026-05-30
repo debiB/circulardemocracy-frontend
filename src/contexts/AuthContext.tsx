@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!supabase) {
       return { data: null, error: null };
     }
+    console.log(window.location.origin);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "custom:stalwart",
       options: {
