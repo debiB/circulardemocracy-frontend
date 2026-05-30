@@ -88,7 +88,6 @@ export function CampaignsPage() {
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
-                      <th className="py-2 px-4 border-b text-left">ID</th>
                       <th className="py-2 px-4 border-b text-left">Name</th>
                       <th className="py-2 px-4 border-b text-left">
                         Created At
@@ -109,13 +108,8 @@ export function CampaignsPage() {
                         className="cursor-pointer hover:bg-gray-50 transition-colors"
                       >
                         <td
-                          className="py-2 px-4 border-b"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          {campaign.id}
-                        </td>
-                        <td
                           className="py-2 px-4 border-b font-medium"
+                          title={campaign.id.toString()}
                           onClick={() => navigate(`/campaigns/${campaign.id}`)}
                         >
                           {campaign.name}

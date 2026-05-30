@@ -28,6 +28,7 @@ interface Campaign {
 
 interface Message {
   id: number;
+  external_id: string | null;
   sender_country: string | null;
   duplicate_rank: number;
   classification_confidence: number;
@@ -91,7 +92,7 @@ async function fetchCampaignMessages(
     let query = getSupabase()
       .from("messages")
       .select(
-        "id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status",
+        "id, external_id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status",
         { count: "exact" },
       )
       .eq("campaign_id", campaignId)
@@ -128,21 +129,9 @@ export function CampaignMessagesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  if (!id) {
-    return (
-      <PageLayout>
-        <Card className="p-4">
-          <CardContent>
-            <p className="text-red-500">Invalid campaign ID</p>
-          </CardContent>
-        </Card>
-      </PageLayout>
-    );
-  }
-
   const { data: campaign } = useSuspenseQuery<Campaign, Error>({
-    queryKey: ["campaign", id],
-    queryFn: () => fetchCampaign(id),
+    queryKey: ["campaign", id!],
+    queryFn: () => fetchCampaign(id!),
   });
 
   const filterLowConfidence = false;
@@ -163,10 +152,11 @@ export function CampaignMessagesPage() {
     { messages: Message[]; totalCount: number },
     Error
   >({
-    queryKey: ["campaign-messages", id, filterLowConfidence, currentPage],
+    queryKey: ["campaign-messages", id!, filterLowConfidence, currentPage],
     queryFn: () =>
-      fetchCampaignMessages(id, filterLowConfidence, currentPage, pageSize),
+      fetchCampaignMessages(id!, filterLowConfidence, currentPage, pageSize),
   });
+
   const allMessages = messagesData?.messages || [];
 
   // Filter messages by reply status
@@ -174,10 +164,10 @@ export function CampaignMessagesPage() {
     replyStatusFilter === "all"
       ? allMessages
       : allMessages.filter(
-          (msg) =>
-            getReplyStatus(msg.reply_sent_at, msg.reply_template_id) ===
-            replyStatusFilter,
-        );
+        (msg) =>
+          getReplyStatus(msg.reply_sent_at, msg.reply_template_id) ===
+          replyStatusFilter,
+      );
 
   const totalCount = messagesData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -215,6 +205,7 @@ export function CampaignMessagesPage() {
       // Create CSV content
       const headers = [
         "ID",
+        "External ID",
         "Country",
         "Confidence",
         "Duplicate Rank",
@@ -229,6 +220,7 @@ export function CampaignMessagesPage() {
           .map((message) =>
             [
               message.id ?? "",
+              message.external_id || "",
               message.sender_country || "Unknown",
               message.classification_confidence != null
                 ? `${(message.classification_confidence * 100).toFixed(1)}%`
@@ -397,7 +389,7 @@ export function CampaignMessagesPage() {
                   <tbody>
                     {messages.map((message) => (
                       <tr key={message.id} className="hover:bg-gray-50">
-                        <td 
+                        <td
                           className="py-2 px-4 border-b cursor-help"
                           title={formatFullDateTime(message.received_at)}
                         >
@@ -405,13 +397,12 @@ export function CampaignMessagesPage() {
                         </td>
                         <td className="py-2 px-4 border-b">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              message.classification_confidence >= 0.7
+                            className={`px-2 py-1 rounded text-xs ${message.classification_confidence >= 0.7
                                 ? "bg-green-100 text-green-800"
                                 : message.classification_confidence >= 0.4
                                   ? "bg-yellow-100 text-yellow-800"
                                   : "bg-red-100 text-red-800"
-                            }`}
+                              }`}
                           >
                             {(message.classification_confidence * 100).toFixed(
                               0,
@@ -432,11 +423,10 @@ export function CampaignMessagesPage() {
                         </td>
                         <td className="py-2 px-4 border-b">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              message.processing_status === "processed"
+                            className={`px-2 py-1 rounded text-xs ${message.processing_status === "unanswered"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-gray-100 text-gray-800"
-                            }`}
+                              }`}
                           >
                             {message.processing_status}
                           </span>
@@ -448,22 +438,24 @@ export function CampaignMessagesPage() {
                               size="sm"
                               onClick={() => handleViewMessage(message.id)}
                               className="text-xs"
-                              title="View message content"
+                              title={
+                                message.external_id || "View message content"
+                              }
                             >
                               View
                             </Button>
                             {(message.reply_template_id ||
                               message.reply_sent_at) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setReplyHistoryMessage(message)}
-                                className="text-xs"
-                                title="View reply history"
-                              >
-                                <History className="h-3 w-3" />
-                              </Button>
-                            )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setReplyHistoryMessage(message)}
+                                  className="text-xs"
+                                  title="View reply history"
+                                >
+                                  <History className="h-3 w-3" />
+                                </Button>
+                              )}
                           </div>
                         </td>
                       </tr>
