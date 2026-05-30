@@ -1,3 +1,4 @@
+import { BarChart3, LogIn, LogOut, Megaphone, User, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom"; // Import Link
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
@@ -25,14 +26,16 @@ function NavbarContent() {
   const displayUserName = profile?.firstname || "Guest";
 
   return (
-    <NavigationMenuList className="flex items-center space-x-4">
+    <NavigationMenuList className="flex items-center space-x-2 md:space-x-4">
       <NavigationMenuItem>
         <NavigationMenuLink asChild>
           <Link
             to="/campaigns"
-            className="font-medium text-gray-700 hover:text-gray-900"
+            className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+            title="Campaigns"
           >
-            Campaigns
+            <Megaphone className="h-5 w-5" />
+            <span className="hidden md:inline">Campaigns</span>
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
@@ -40,9 +43,11 @@ function NavbarContent() {
         <NavigationMenuLink asChild>
           <Link
             to="/users"
-            className="font-medium text-gray-700 hover:text-gray-900"
+            className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+            title="Team"
           >
-            Team
+            <Users className="h-5 w-5" />
+            <span className="hidden md:inline">Team</span>
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
@@ -50,9 +55,11 @@ function NavbarContent() {
         <NavigationMenuLink asChild>
           <Link
             to="/analytics"
-            className="font-medium text-gray-700 hover:text-gray-900"
+            className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+            title="Analytics"
           >
-            Analytics
+            <BarChart3 className="h-5 w-5" />
+            <span className="hidden md:inline">Analytics</span>
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
@@ -60,27 +67,23 @@ function NavbarContent() {
         <NavigationMenuLink asChild>
           <Link
             to="/politician"
-            className="font-medium text-gray-700 hover:text-gray-900"
+            className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+            title="Profile"
           >
-            Profile
+            <User className="h-5 w-5" />
+            <span className="hidden md:inline">Profile</span>
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      {/*
       <NavigationMenuItem>
-        <NavigationMenuLink asChild>
-          <Link
-            to="/profile"
-            className="font-medium text-gray-700 hover:text-gray-900"
-          >
-            Profile
-          </Link>
-        </NavigationMenuLink>
-      </NavigationMenuItem>
-      */}
-      <NavigationMenuItem>
-        <Button variant="ghost" onClick={handleLogout} title={displayUserName}>
-          Logout
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          title={`Logout (${displayUserName})`}
+          className="flex items-center gap-2 px-2 md:px-3"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="hidden md:inline">Logout</span>
         </Button>
       </NavigationMenuItem>
     </NavigationMenuList>
@@ -105,14 +108,16 @@ export function Navbar() {
         {authUser ? (
           <NavbarContent />
         ) : (
-          <NavigationMenuList className="flex items-center space-x-4">
+          <NavigationMenuList className="flex items-center space-x-2 md:space-x-4">
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 <Link
                   to="/login"
-                  className="font-medium text-gray-700 hover:text-gray-900"
+                  className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+                  title="Login"
                 >
-                  Login
+                  <LogIn className="h-5 w-5" />
+                  <span className="hidden md:inline">Login</span>
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
@@ -120,9 +125,11 @@ export function Navbar() {
               <NavigationMenuLink asChild>
                 <Link
                   to="/register"
-                  className="font-medium text-gray-700 hover:text-gray-900"
+                  className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
+                  title="Register"
                 >
-                  Register
+                  <UserPlus className="h-5 w-5" />
+                  <span className="hidden md:inline">Register</span>
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
