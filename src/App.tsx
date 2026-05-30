@@ -8,6 +8,7 @@ import { CampaignMessagesPage } from "./pages/CampaignMessagesPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PoliticianPage } from "./pages/PoliticianPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
@@ -77,6 +78,20 @@ export function App() {
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route
+            path="/politician"
+            element={
+              <Suspense
+                fallback={
+                  <PageLayout centerContent={true}>
+                    <LoadingSpinner />
+                  </PageLayout>
+                }
+              >
+                <PoliticianPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/profile"
             element={

@@ -10,19 +10,21 @@ interface TemplatePreviewProps {
   personalizationData?: {
     name?: string;
     campaign?: string;
+    subject?: string;
+    politician?: string;
   };
 }
 
 /**
  * Simple variable substitution for template personalization
- * Supports: {name}, {campaign}
+ * Supports: {name}, {campaign}, {subject}, {politician}
  *
- * TODO: Add more variables as needed (e.g., {politician}, {date})
+ * TODO: Add more variables as needed (e.g., {date})
  * TODO: Consider adding fallback values for missing data
  */
 function substituteVariables(
   text: string,
-  data: { name?: string; campaign?: string },
+  data: { name?: string; campaign?: string; subject?: string; politician?: string },
 ): string {
   let result = text;
 
@@ -38,6 +40,20 @@ function substituteVariables(
     result = result.replace(/{campaign}/g, data.campaign);
   } else {
     result = result.replace(/{campaign}/g, "[Campaign]");
+  }
+
+  // Replace {subject} with actual subject or placeholder
+  if (data.subject) {
+    result = result.replace(/{subject}/g, data.subject);
+  } else {
+    result = result.replace(/{subject}/g, "[Subject]");
+  }
+
+  // Replace {politician} with actual politician or placeholder
+  if (data.politician) {
+    result = result.replace(/{politician}/g, data.politician);
+  } else {
+    result = result.replace(/{politician}/g, "[Politician]");
   }
 
   return result;
@@ -118,7 +134,10 @@ export function TemplatePreview({
         </div>
 
         {/* Personalization Info */}
-        {(personalizationData.name || personalizationData.campaign) && (
+        {(personalizationData.name ||
+          personalizationData.campaign ||
+          personalizationData.subject ||
+          personalizationData.politician) && (
           <div className="bg-blue-50 border border-blue-200 rounded p-3">
             <div className="text-xs font-medium text-blue-800 mb-2">
               Personalization Applied:
@@ -140,15 +159,37 @@ export function TemplatePreview({
                   </span>
                 </div>
               )}
+              {personalizationData.subject && (
+                <div>
+                  • Subject:{" "}
+                  <span className="font-medium">
+                    {personalizationData.subject}
+                  </span>
+                </div>
+              )}
+              {personalizationData.politician && (
+                <div>
+                  • Politician:{" "}
+                  <span className="font-medium">
+                    {personalizationData.politician}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {!personalizationData.name && !personalizationData.campaign && (
+        {!(
+          personalizationData.name ||
+          personalizationData.campaign ||
+          personalizationData.subject ||
+          personalizationData.politician
+        ) && (
           <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
             <div className="text-xs text-yellow-800">
-              No personalization data provided. Variables like {"{name}"} and{" "}
-              {"{campaign}"} will show as placeholders.
+              No personalization data provided. Variables like {"{name}"},{" "}
+              {"{campaign}"}, {"{subject}"}, and {"{politician}"} will show as
+              placeholders.
             </div>
           </div>
         )}

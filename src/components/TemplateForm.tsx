@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useProfile } from "@/hooks/useProfile";
 import {
   insertReplyTemplate,
   type ReplyTemplateInsertPayload,
@@ -36,6 +37,7 @@ import { getSupabase } from "@/lib/supabase";
 interface Campaign {
   id: number;
   name: string;
+  politician_id: number;
 }
 
 const templateFormSchema = z
@@ -86,7 +88,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   try {
     const { data, error } = await getSupabase()
       .from("campaigns")
-      .select("id, name")
+      .select("id, name, politician_id")
       .order("name");
     if (error) {
       console.error("Error fetching campaigns:", error);
@@ -127,6 +129,7 @@ export function TemplateForm({
   onCancel,
 }: TemplateFormProps) {
   const queryClient = useQueryClient();
+  const { data: profile } = useProfile();
   const isEditMode = !!initialData?.id;
 
   const { data: campaigns } = useSuspenseQuery<Campaign[], Error>({
@@ -150,10 +153,10 @@ export function TemplateForm({
     mode: "onChange",
     defaultValues: {
       name: initialData?.name || "default",
-      subject: initialData?.subject || "",
+      subject: initialData?.subject || "Re: {subject}",
       body: initialData?.body ?? "",
       campaign_id: initialData?.campaign_id,
-      politician_id: (initialData as any)?.politician_id ?? null,
+      politician_id: (initialData as any)?.politician_id ?? profile.politician_id,
       layout_type: (initialData as any)?.layout_type || "standard_header",
       send_timing: initialData?.send_timing || "immediate",
       scheduled_for: initialData?.scheduled_for || "",
@@ -192,11 +195,24 @@ export function TemplateForm({
   });
 
   const onSubmit = async (data: TemplateFormData) => {
+    const campaignFromList = campaigns?.find((c) => c.id === data.campaign_id);
+    const politicianId = data.politician_id ?? campaignFromList?.politician_id ?? profile.politician_id;
+
+    if (!politicianId) {
+      toast.error("Could not determine Politician ID. Please ensure your profile is complete or try again.");
+      return;
+    }
+
+    const finalData = {
+      ...data,
+      politician_id: politicianId,
+    };
+
     try {
       if (isEditMode && initialData?.id) {
-        await updateMutation.mutateAsync({ id: initialData.id, data });
+        await updateMutation.mutateAsync({ id: initialData.id, data: finalData });
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(finalData);
       }
     } catch (error) {
       // Error is already handled by mutation's onError callback
@@ -218,14 +234,20 @@ export function TemplateForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <input type="hidden" {...register("politician_id")} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field>
           <FieldLabel htmlFor="campaign_id">Campaign *</FieldLabel>
           <Select
             value={watch("campaign_id")?.toString()}
-            onValueChange={(value) =>
-              setValue("campaign_id", parseInt(value, 10))
-            }
+            onValueChange={(value) => {
+              const cid = parseInt(value, 10);
+              setValue("campaign_id", cid);
+              const campaign = campaigns?.find((c) => c.id === cid);
+              if (campaign?.politician_id) {
+                setValue("politician_id", campaign.politician_id);
+              }
+            }}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a campaign" />
@@ -262,6 +284,7 @@ export function TemplateForm({
         {...register("subject")}
         errorMessage={errors.subject?.message}
         placeholder="e.g., Thank you for your message"
+        description="{subject} = re-use the subject of the email received"
       />
 
       <Field>
@@ -333,6 +356,8 @@ export function TemplateForm({
           personalizationData={{
             name: "John Doe",
             campaign: selectedCampaign?.name || "Sample Campaign",
+            subject: "Inquiry about proposal",
+            politician: `${profile.firstname} ${profile.lastname}`,
           }}
         />
       )}

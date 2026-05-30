@@ -29,6 +29,7 @@ const loadingFallback = (
 export interface ReplyTemplateRow {
   id: number;
   campaign_id: number;
+  politician_id: number | null;
   name: string;
   subject: string;
   body: string;
@@ -46,7 +47,7 @@ async function fetchTemplatesForCampaign(
   const { data, error } = await getSupabase()
     .from("reply_templates")
     .select(
-      "id, campaign_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
+      "id, campaign_id, politician_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
     )
     .eq("campaign_id", campaignId)
     .order("id", { ascending: false });
@@ -61,7 +62,7 @@ async function fetchTemplateById(id: number): Promise<ReplyTemplateRow> {
   const { data, error } = await getSupabase()
     .from("reply_templates_with_campaign")
     .select(
-      "id, campaign_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
+      "id, campaign_id, politician_id, name, subject, body, active, layout_type, send_timing, scheduled_for, created_at, updated_at",
     )
     .eq("id", id)
     .single();

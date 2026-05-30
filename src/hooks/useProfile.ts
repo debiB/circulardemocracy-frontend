@@ -128,12 +128,13 @@ async function resolveProfile(
     !merged.firstname || !merged.lastname || !merged.job_title;
 
   const authDefaults = needsAuthFallback ? defaultsFromAuthUser(user) : null;
+  const politicianIdFromMeta = user.user_metadata?.politician_id;
 
   return {
     firstname: pickFirstNonEmpty(merged.firstname, authDefaults?.firstname),
     lastname: pickFirstNonEmpty(merged.lastname, authDefaults?.lastname),
     job_title: pickFirstNonEmpty(merged.job_title, authDefaults?.job_title),
-    politician_id: merged.politician_id,
+    politician_id: merged.politician_id ?? (typeof politicianIdFromMeta === 'number' ? politicianIdFromMeta : (typeof politicianIdFromMeta === 'string' ? parseInt(politicianIdFromMeta, 10) : null)),
   };
 }
 

@@ -59,6 +59,17 @@ function NavbarContent() {
       <NavigationMenuItem>
         <NavigationMenuLink asChild>
           <Link
+            to="/politician"
+            className="font-medium text-gray-700 hover:text-gray-900"
+          >
+            Profile
+          </Link>
+        </NavigationMenuLink>
+      </NavigationMenuItem>
+      {/*
+      <NavigationMenuItem>
+        <NavigationMenuLink asChild>
+          <Link
             to="/profile"
             className="font-medium text-gray-700 hover:text-gray-900"
           >
@@ -66,6 +77,7 @@ function NavbarContent() {
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
+      */}
       <NavigationMenuItem>
         <Button variant="ghost" onClick={handleLogout} title={displayUserName}>
           Logout
