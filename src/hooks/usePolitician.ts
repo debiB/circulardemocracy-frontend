@@ -6,13 +6,13 @@ export const politicianSchema = z.object({
   id: z.number().optional(),
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  additional_emails: z.array(z.string().email("Invalid email address")).optional().default([]),
+  additional_emails: z.array(z.string().email("Invalid email address")),
   party: z.string().nullable().optional(),
   country: z.string().length(2, "Country must be 2 characters").nullable().optional(),
   region: z.string().nullable().optional(),
   level: z.string().nullable().optional(),
   position: z.string().nullable().optional(),
-  active: z.boolean().optional().default(true),
+  active: z.boolean(),
   reply_to: z.string().email("Invalid email address").nullable().optional(),
 });
 
@@ -39,7 +39,11 @@ async function fetchPolitician(): Promise<Politician> {
     throw new Error("Politician not found. You might not have permission to view it.");
   }
 
-  return data as Politician;
+  return {
+    ...data,
+    active: data.active ?? true,
+    additional_emails: data.additional_emails || [],
+  } as Politician;
 }
 
 export function usePolitician() {

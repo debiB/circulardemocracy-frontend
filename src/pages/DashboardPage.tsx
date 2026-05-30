@@ -3,7 +3,7 @@ import { AnalyticsContainer } from "@/components/analytics/AnalyticsContainer";
 import { CampaignsWithoutReplyTemplateCard } from "@/components/dashboard/CampaignsWithoutReplyTemplateCard";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useProfile } from "@/hooks/useProfile";
+import { usePolitician } from "@/hooks/usePolitician";
 import { useUser } from "@/hooks/useUser";
 
 const DashboardSectionFallback = () => (
@@ -15,8 +15,8 @@ const DashboardSectionFallback = () => (
 );
 
 export const DashboardPageContent = () => {
-  const { data: profile } = useProfile();
-  const displayUserName = profile?.firstname || "Guest";
+  const { data: profile } = usePolitician();
+  const displayUserName = profile?.name || "Guest";
 
   return (
     <PageLayout>

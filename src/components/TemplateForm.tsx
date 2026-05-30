@@ -37,13 +37,12 @@ import { getSupabase } from "@/lib/supabase";
 interface Campaign {
   id: number;
   name: string;
-  politician_id: number;
 }
 
 const templateFormSchema = z
   .object({
     campaign_id: z.number().positive("Campaign is required"),
-    politician_id: z.number(),
+    politician_id: z.number().nullable().optional(),
     name: z
       .string()
       .min(3, "Template name must be at least 3 characters")
@@ -156,7 +155,7 @@ export function TemplateForm({
       subject: initialData?.subject || "Re: {subject}",
       body: initialData?.body ?? "",
       campaign_id: initialData?.campaign_id,
-      politician_id: (initialData as any)?.id ?? profile.id,
+      politician_id: initialData?.politician_id ?? profile.id,
       layout_type: (initialData as any)?.layout_type || "standard_header",
       send_timing: initialData?.send_timing || "immediate",
       scheduled_for: initialData?.scheduled_for || "",
@@ -195,7 +194,6 @@ export function TemplateForm({
   });
 
   const onSubmit = async (data: TemplateFormData) => {
-    const campaignFromList = campaigns?.find((c) => c.id === data.campaign_id);
     const politicianId = profile.id;
 
     if (!politicianId) {
@@ -248,10 +246,6 @@ export function TemplateForm({
             onValueChange={(value) => {
               const cid = parseInt(value, 10);
               setValue("campaign_id", cid);
-              const campaign = campaigns?.find((c) => c.id === cid);
-              if (campaign?.politician_id) {
-                setValue("politician_id", campaign.politician_id);
-              }
             }}
           >
             <SelectTrigger className="w-full">
@@ -359,10 +353,10 @@ export function TemplateForm({
           sendTiming={sendTiming}
           scheduledFor={watch("scheduled_for")}
           personalizationData={{
-            name: "John Doe",
+            name: "Jane Doe",
             campaign: selectedCampaign?.name || "Sample Campaign",
             subject: "Inquiry about proposal",
-            politician: `${profile.firstname} ${profile.lastname}`,
+            politician: `${profile.name}`,
           }}
         />
       )}
