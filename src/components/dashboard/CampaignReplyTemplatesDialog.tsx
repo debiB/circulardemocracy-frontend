@@ -34,7 +34,7 @@ export interface ReplyTemplateRow {
   subject: string;
   body: string;
   active: boolean;
-  layout_type: "text_only" | "standard_header";
+  layout_type: "text_only" | "standard_header" | "EP";
   send_timing: "immediate" | "office_hours" | "scheduled";
   scheduled_for: string | null;
   created_at: string;

@@ -200,7 +200,8 @@ function TemplatesList() {
                         ...editingTemplate,
                         layout_type: editingTemplate.layout_type as
                           | "text_only"
-                          | "standard_header",
+                          | "standard_header"
+                          | "EP",
                         send_timing: editingTemplate.send_timing as
                           | "immediate"
                           | "office_hours"

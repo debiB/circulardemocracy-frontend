@@ -55,7 +55,7 @@ const templateFormSchema = z
       .string()
       .min(10, "Message body must be at least 10 characters")
       .max(10000, "Message body is too long"),
-    layout_type: z.enum(["text_only", "standard_header"]),
+    layout_type: z.enum(["text_only", "standard_header", "EP"]),
     send_timing: z.enum(["immediate", "office_hours", "scheduled"]),
     scheduled_for: z.string().optional(),
     active: z.boolean(),
@@ -302,18 +302,47 @@ export function TemplateForm({
         {errors.body && <FieldError>{errors.body.message}</FieldError>}
       </Field>
 
-      <SendTimingSelector
-        value={sendTiming}
-        onValueChange={(value) => {
-          setSendTiming(value);
-          setValue("send_timing", value, { shouldValidate: true });
-        }}
-        scheduledDateTime={watch("scheduled_for")}
-        onScheduledDateTimeChange={(value) =>
-          setValue("scheduled_for", value, { shouldValidate: true })
-        }
-        error={errors.scheduled_for?.message}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <SendTimingSelector
+            value={sendTiming}
+            onValueChange={(value) => {
+              setSendTiming(value);
+              setValue("send_timing", value, { shouldValidate: true });
+            }}
+            scheduledDateTime={watch("scheduled_for")}
+            onScheduledDateTimeChange={(value) =>
+              setValue("scheduled_for", value, { shouldValidate: true })
+            }
+            error={errors.scheduled_for?.message}
+          />
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor="layout_type">Layout Type *</FieldLabel>
+          <Select
+            value={watch("layout_type")}
+            onValueChange={(value) => {
+              setValue("layout_type", value as "text_only" | "standard_header" | "EP", { shouldValidate: true });
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select layout type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text_only">Text Only</SelectItem>
+              <SelectItem value="standard_header">Standard Header</SelectItem>
+              <SelectItem value="EP">EP</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldDescription>
+            Choose how the email will be formatted.
+          </FieldDescription>
+          {errors.layout_type && (
+            <FieldError>{errors.layout_type.message}</FieldError>
+          )}
+        </Field>
+      </div>
 
       <Field orientation="horizontal">
         <div className="flex items-center gap-2">

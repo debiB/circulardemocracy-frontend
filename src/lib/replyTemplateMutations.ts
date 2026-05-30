@@ -1,7 +1,7 @@
 import { getSupabase } from "@/lib/supabase";
 import { getApiErrorMessage } from "@/lib/utils";
 
-export type ReplyLayoutType = "text_only" | "standard_header";
+export type ReplyLayoutType = "text_only" | "standard_header" | "EP";
 export type ReplySendTiming = "immediate" | "office_hours" | "scheduled";
 
 export interface ReplyTemplateInsertPayload {
