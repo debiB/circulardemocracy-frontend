@@ -4,7 +4,11 @@ import {
   type MessageLineChartData,
 } from "@/components/charts/MessageLineChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type AnalyticsTimeBucket, useAnalytics } from "@/hooks/useAnalytics";
+import {
+  type AnalyticsTimeBucket,
+  useAnalytics,
+  useByStatus,
+} from "@/hooks/useAnalytics";
 
 interface AnalyticsContainerProps {
   timeBucket?: AnalyticsTimeBucket;
@@ -13,7 +17,19 @@ interface AnalyticsContainerProps {
 export function AnalyticsContainer({
   timeBucket = "day",
 }: AnalyticsContainerProps) {
-  const { data, isLoading, isError, error } = useAnalytics(timeBucket);
+  const { data, isLoading: isAnalyticsLoading, isError, error } = useAnalytics(timeBucket);
+
+  const startDate = useMemo(() => {
+    if (timeBucket === "day") {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return d;
+    }
+    return undefined;
+  }, [timeBucket]);
+
+  const { data: statusData, isLoading: isStatusLoading } = useByStatus(startDate);
+
   const chartTitle =
     timeBucket === "week" ? "Messages by week" : "What happened this week";
 
@@ -26,7 +42,21 @@ export function AnalyticsContainer({
     }));
   }, [data]);
 
-  if (isLoading) {
+  const statusMetrics = useMemo(() => {
+    if (!statusData) return { total: 0, replied: 0, unanswered: 0 };
+
+    const total = statusData.reduce((sum, s) => sum + s.count, 0);
+    const replied =
+      statusData.find((s) => s.status === "replied" || s.status === "sent")
+        ?.count || 0;
+    const unanswered =
+      statusData.find((s) => s.status === "unanswered" || s.status === "pending")
+        ?.count || 0;
+
+    return { total, replied, unanswered };
+  }, [statusData]);
+
+  if (isAnalyticsLoading || isStatusLoading) {
     return (
       <Card className="p-4">
         <CardHeader>
@@ -88,13 +118,13 @@ export function AnalyticsContainer({
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">Messages</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {data.totalMessages}
+              {statusMetrics.total}
             </p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">Replied</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {data.repliesSent}
+              {statusMetrics.replied}
             </p>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
@@ -102,7 +132,7 @@ export function AnalyticsContainer({
               Unanswered
             </p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {data.pendingReplies}
+              {statusMetrics.unanswered}
             </p>
           </div>
         </div>

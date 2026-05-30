@@ -21,17 +21,40 @@ import { AnalyticsPage } from "@/pages/AnalyticsPage";
 // MOCKS
 // =============================================================================
 
-const { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom } = vi.hoisted(
+const { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom, mockAnalyticsRpc } = vi.hoisted(
   () => {
     const mockGetSession = vi.fn();
     const mockAnalyticsOrder = vi.fn();
-    const mockAnalyticsGte = vi.fn(() => ({ order: mockAnalyticsOrder }));
+    const mockAnalyticsRpc = vi.fn();
+    const mockAnalyticsEq = vi.fn(() => ({
+      order: mockAnalyticsOrder,
+      in: vi.fn(() => ({
+        gte: vi.fn(() => ({
+          then: (resolve: any) => resolve({ count: 10, error: null }),
+        })),
+        then: (resolve: any) => resolve({ count: 10, error: null }),
+      })),
+      gte: vi.fn(() => ({
+        then: (resolve: any) => resolve({ count: 10, error: null }),
+      })),
+      then: (resolve: any) => resolve({ count: 10, error: null }),
+    }));
+    const mockAnalyticsNot = vi.fn(() => ({
+      order: mockAnalyticsOrder,
+      then: (resolve: any) => resolve({ count: 10, error: null }),
+    }));
+    const mockAnalyticsGte = vi.fn(() => ({
+      order: mockAnalyticsOrder,
+      not: mockAnalyticsNot,
+    }));
     const mockAnalyticsSelect = vi.fn(() => ({
       gte: mockAnalyticsGte,
       order: mockAnalyticsOrder,
+      not: mockAnalyticsNot,
+      eq: mockAnalyticsEq,
     }));
     const mockAnalyticsFrom = vi.fn(() => ({ select: mockAnalyticsSelect }));
-    return { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom };
+    return { mockGetSession, mockAnalyticsOrder, mockAnalyticsFrom, mockAnalyticsRpc };
   },
 );
 
@@ -41,6 +64,7 @@ vi.mock("@/lib/supabase", () => {
       getSession: () => mockGetSession(),
     },
     from: mockAnalyticsFrom,
+    rpc: mockAnalyticsRpc,
   };
   return {
     supabase: client,
@@ -113,8 +137,8 @@ const mockBackendResponse = [
 
 const expectedAnalyticsData = {
   totalMessages: 150,
-  repliesSent: 0,
-  pendingReplies: 150,
+  repliesSent: 10,
+  pendingReplies: 140,
   messagesByDay: [
     { date: "2026-03-31", count: 90 },
     { date: "2026-04-01", count: 60 },
