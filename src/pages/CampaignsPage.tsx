@@ -89,10 +89,10 @@ export function CampaignsPage() {
                   <thead>
                     <tr>
                       <th className="py-2 px-4 border-b text-left">Name</th>
-                      <th className="py-2 px-4 border-b text-left">
+                      <th className="py-2 px-4 border-b text-left hidden md:table-cell">
                         Created At
                       </th>
-                      <th className="py-2 px-4 border-b text-left">
+                      <th className="py-2 px-4 border-b text-left hidden md:table-cell">
                         Updated At
                       </th>
                       <th className="py-2 px-4 border-b text-left">Messages</th>
@@ -115,7 +115,7 @@ export function CampaignsPage() {
                           {campaign.name}
                         </td>
                         <td
-                          className="py-2 px-4 border-b"
+                          className="py-2 px-4 border-b hidden md:table-cell"
                           onClick={() => navigate(`/campaigns/${campaign.id}`)}
                         >
                           {campaign.created_at
@@ -123,7 +123,7 @@ export function CampaignsPage() {
                             : "N/A"}
                         </td>
                         <td
-                          className="py-2 px-4 border-b"
+                          className="py-2 px-4 border-b hidden md:table-cell"
                           onClick={() => navigate(`/campaigns/${campaign.id}`)}
                         >
                           {campaign.updated_at

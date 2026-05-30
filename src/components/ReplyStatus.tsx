@@ -143,9 +143,7 @@ export function ReplyStatusFilter({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm font-medium text-gray-700">
-        Filter by reply status:
-      </span>
+      <span className="text-sm font-medium text-gray-700">Filter:</span>
       <div className="flex gap-1">
         <button
           type="button"
@@ -175,7 +173,7 @@ export function ReplyStatusFilter({
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
         >
-          Pending
+          Unanswered
         </button>
         <button
           type="button"

@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/useProfile";
 import {
   deleteReplyTemplate,
   updateReplyTemplate,
@@ -86,6 +87,7 @@ export function CampaignReplyTemplatesDialog({
   campaignName,
 }: CampaignReplyTemplatesDialogProps) {
   const queryClient = useQueryClient();
+  const { data: profile } = useProfile();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<ReplyTemplateRow | null>(null);
@@ -334,6 +336,7 @@ export function CampaignReplyTemplatesDialog({
                     <TemplateForm
                       initialData={{
                         campaign_id: campaignId,
+                        politician_id: profile.politician_id,
                         active: defaultActiveForNew,
                       }}
                       onSuccess={async () => {

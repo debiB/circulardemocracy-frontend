@@ -71,7 +71,9 @@ export function App() {
 
   return (
     <>
-      <Navbar />
+      <Suspense fallback={null}>
+        <Navbar />
+      </Suspense>
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<DashboardPage />} />
@@ -89,7 +91,20 @@ export function App() {
               </Suspense>
             }
           />
-          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route
+            path="/campaigns"
+            element={
+              <Suspense
+                fallback={
+                  <PageLayout centerContent={true}>
+                    <LoadingSpinner />
+                  </PageLayout>
+                }
+              >
+                <CampaignsPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/campaigns/:id"
             element={

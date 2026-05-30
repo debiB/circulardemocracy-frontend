@@ -8,24 +8,75 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUser } from "@/hooks/useUser"; // Import useUser hook
+import { useProfile } from "@/hooks/useProfile"; // Import useProfile hook
 
-export function Navbar() {
-  const { user: authUser, signOut } = useAuth();
-  const { data: currentUser } = useUser(); // Fetch current user from Supabase via hook
+function NavbarContent() {
+  const { signOut } = useAuth();
+  const { data: profile } = useProfile();
 
   const handleLogout = async () => {
     try {
       await signOut();
-      // Optionally redirect or show a message, Navigate will handle it via AuthProvider
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  const displayUserName = currentUser?.email
-    ? currentUser.email.split("@")[0]
-    : "Guest";
+  const displayUserName = profile?.firstname || "Guest";
+
+  return (
+    <NavigationMenuList className="flex items-center space-x-4">
+      <NavigationMenuItem>
+        <NavigationMenuLink asChild>
+          <Link
+            to="/campaigns"
+            className="font-medium text-gray-700 hover:text-gray-900"
+          >
+            Campaigns
+          </Link>
+        </NavigationMenuLink>
+      </NavigationMenuItem>
+      <NavigationMenuItem>
+        <NavigationMenuLink asChild>
+          <Link
+            to="/users"
+            className="font-medium text-gray-700 hover:text-gray-900"
+          >
+            Team
+          </Link>
+        </NavigationMenuLink>
+      </NavigationMenuItem>
+      <NavigationMenuItem>
+        <NavigationMenuLink asChild>
+          <Link
+            to="/analytics"
+            className="font-medium text-gray-700 hover:text-gray-900"
+          >
+            Analytics
+          </Link>
+        </NavigationMenuLink>
+      </NavigationMenuItem>
+      <NavigationMenuItem>
+        <NavigationMenuLink asChild>
+          <Link
+            to="/profile"
+            className="font-medium text-gray-700 hover:text-gray-900"
+          >
+            Profile
+          </Link>
+        </NavigationMenuLink>
+      </NavigationMenuItem>
+      <NavigationMenuItem>
+        <Button variant="ghost" onClick={handleLogout} title={displayUserName}>
+          Logout
+        </Button>
+      </NavigationMenuItem>
+    </NavigationMenuList>
+  );
+}
+
+export function Navbar() {
+  const { user: authUser } = useAuth();
 
   return (
     <NavigationMenu className="fixed top-0 left-0 w-full max-w-none flex items-center justify-between p-4 border-b border-gray-200 z-50 bg-white">
@@ -38,53 +89,11 @@ export function Navbar() {
           <span className="font-bold hidden md:block">Circular Democracy</span>
         </Link>
       </div>
-      <NavigationMenuList className="flex items-center space-x-4">
-        {authUser && (
-          <>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link
-                  to="/campaigns"
-                  className="font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Campaigns
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link
-                  to="/users"
-                  className="font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Team
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link
-                  to="/analytics"
-                  className="font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Analytics
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link
-                  to="/profile"
-                  className="font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Profile
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          </>
-        )}
-        {!authUser && (
-          <>
+      <div className="flex items-center space-x-4">
+        {authUser ? (
+          <NavbarContent />
+        ) : (
+          <NavigationMenuList className="flex items-center space-x-4">
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 <Link
@@ -105,20 +114,9 @@ export function Navbar() {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-          </>
+          </NavigationMenuList>
         )}
-        {authUser && (
-          <NavigationMenuItem>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              title={displayUserName}
-            >
-              Logout
-            </Button>
-          </NavigationMenuItem>
-        )}
-      </NavigationMenuList>
+      </div>
     </NavigationMenu>
   );
 }

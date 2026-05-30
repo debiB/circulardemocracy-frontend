@@ -6,6 +6,7 @@ export type ReplySendTiming = "immediate" | "office_hours" | "scheduled";
 
 export interface ReplyTemplateInsertPayload {
   campaign_id: number;
+  politician_id?: number | null;
   name: string;
   subject: string;
   body: string;

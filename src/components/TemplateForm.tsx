@@ -41,6 +41,7 @@ interface Campaign {
 const templateFormSchema = z
   .object({
     campaign_id: z.number().positive("Campaign is required"),
+    politician_id: z.number().nullable().optional(),
     name: z
       .string()
       .min(3, "Template name must be at least 3 characters")
@@ -109,6 +110,7 @@ function buildInsertPayload(
 
   return {
     campaign_id: data.campaign_id,
+    politician_id: data.politician_id,
     name: data.name,
     subject: data.subject,
     body: data.body || "",
@@ -151,6 +153,7 @@ export function TemplateForm({
       subject: initialData?.subject || "",
       body: initialData?.body ?? "",
       campaign_id: initialData?.campaign_id,
+      politician_id: (initialData as any)?.politician_id ?? null,
       layout_type: (initialData as any)?.layout_type || "standard_header",
       send_timing: initialData?.send_timing || "immediate",
       scheduled_for: initialData?.scheduled_for || "",
