@@ -190,7 +190,7 @@ export function CampaignMessagesPage() {
 
       // Fetch all messages for export (no pagination)
       const allMessagesData = await fetchCampaignMessages(
-        id,
+        id as string,
         filterLowConfidence,
         1,
         10000,
