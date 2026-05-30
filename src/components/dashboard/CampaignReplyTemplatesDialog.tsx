@@ -29,7 +29,7 @@ const loadingFallback = (
 export interface ReplyTemplateRow {
   id: number;
   campaign_id: number;
-  politician_id: number | null;
+  politician_id: number;
   name: string;
   subject: string;
   body: string;

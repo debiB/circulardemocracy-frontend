@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useProfile } from "@/hooks/useProfile";
+import { usePolitician } from "@/hooks/usePolitician";
 import {
   insertReplyTemplate,
   type ReplyTemplateInsertPayload,
@@ -43,7 +43,7 @@ interface Campaign {
 const templateFormSchema = z
   .object({
     campaign_id: z.number().positive("Campaign is required"),
-    politician_id: z.number().nullable().optional(),
+    politician_id: z.number(),
     name: z
       .string()
       .min(3, "Template name must be at least 3 characters")
@@ -88,7 +88,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   try {
     const { data, error } = await getSupabase()
       .from("campaigns")
-      .select("id, name, politician_id")
+      .select("id, name")
       .order("name");
     if (error) {
       console.error("Error fetching campaigns:", error);
@@ -129,7 +129,7 @@ export function TemplateForm({
   onCancel,
 }: TemplateFormProps) {
   const queryClient = useQueryClient();
-  const { data: profile } = useProfile();
+  const { data: profile } = usePolitician();
   const isEditMode = !!initialData?.id;
 
   const { data: campaigns } = useSuspenseQuery<Campaign[], Error>({
@@ -156,7 +156,7 @@ export function TemplateForm({
       subject: initialData?.subject || "Re: {subject}",
       body: initialData?.body ?? "",
       campaign_id: initialData?.campaign_id,
-      politician_id: (initialData as any)?.politician_id ?? profile.politician_id,
+      politician_id: (initialData as any)?.id ?? profile.id,
       layout_type: (initialData as any)?.layout_type || "standard_header",
       send_timing: initialData?.send_timing || "immediate",
       scheduled_for: initialData?.scheduled_for || "",
@@ -196,10 +196,12 @@ export function TemplateForm({
 
   const onSubmit = async (data: TemplateFormData) => {
     const campaignFromList = campaigns?.find((c) => c.id === data.campaign_id);
-    const politicianId = data.politician_id ?? campaignFromList?.politician_id ?? profile.politician_id;
+    const politicianId = profile.id;
 
     if (!politicianId) {
-      toast.error("Could not determine Politician ID. Please ensure your profile is complete or try again.");
+      toast.error(
+        "Could not determine Politician ID. Please ensure your profile is complete or try again.",
+      );
       return;
     }
 
@@ -210,7 +212,10 @@ export function TemplateForm({
 
     try {
       if (isEditMode && initialData?.id) {
-        await updateMutation.mutateAsync({ id: initialData.id, data: finalData });
+        await updateMutation.mutateAsync({
+          id: initialData.id,
+          data: finalData,
+        });
       } else {
         await createMutation.mutateAsync(finalData);
       }
