@@ -68,7 +68,7 @@ export function AnalyticsContainer({
           <CardTitle className="text-primary">{chartTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center">
             <p className="text-gray-500 dark:text-gray-400">
               No analytics data available
             </p>
@@ -86,24 +86,20 @@ export function AnalyticsContainer({
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Total Messages
-            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Messages</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {data.totalMessages}
             </p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Replies Sent
-            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Replied</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {data.repliesSent}
             </p>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Pending Replies
+              Unanswered
             </p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
               {data.pendingReplies}
@@ -119,7 +115,7 @@ export function AnalyticsContainer({
               timeBucket={timeBucket}
             />
           ) : (
-            <div className="flex items-center justify-center h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
                 No campaign data to display
               </p>

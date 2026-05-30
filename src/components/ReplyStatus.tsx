@@ -77,7 +77,7 @@ function ReplyStatusBadge({ status }: { status: ReplyStatusType }) {
           className="bg-yellow-100 text-yellow-800 border-yellow-200"
         >
           <Send className="h-3 w-3 mr-1" />
-          Pending
+          Unanswered
         </Badge>
       );
     default:
@@ -150,44 +150,40 @@ export function ReplyStatusFilter({
         <button
           type="button"
           onClick={() => onChange("all")}
-          className={`px-3 py-1 text-xs rounded ${
-            value === "all"
+          className={`px-3 py-1 text-xs rounded ${value === "all"
               ? "bg-primary text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           All
         </button>
         <button
           type="button"
           onClick={() => onChange("sent")}
-          className={`px-3 py-1 text-xs rounded ${
-            value === "sent"
+          className={`px-3 py-1 text-xs rounded ${value === "sent"
               ? "bg-green-600 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           Sent
         </button>
         <button
           type="button"
           onClick={() => onChange("pending")}
-          className={`px-3 py-1 text-xs rounded ${
-            value === "pending"
+          className={`px-3 py-1 text-xs rounded ${value === "pending"
               ? "bg-yellow-600 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           Pending
         </button>
         <button
           type="button"
           onClick={() => onChange("none")}
-          className={`px-3 py-1 text-xs rounded ${
-            value === "none"
+          className={`px-3 py-1 text-xs rounded ${value === "none"
               ? "bg-gray-600 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           No Reply
         </button>
