@@ -7,7 +7,13 @@ import { useProfile } from "@/hooks/useProfile";
 import { useUser } from "@/hooks/useUser";
 
 const DashboardSectionFallback = () => (
-...
+  <Card className="p-4">
+    <CardContent className="flex items-center justify-center min-h-[220px] pt-10">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+    </CardContent>
+  </Card>
+);
+
 export const DashboardPageContent = () => {
   const { data: profile } = useProfile();
   const displayUserName = profile?.firstname || "Guest";
