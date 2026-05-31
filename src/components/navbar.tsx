@@ -1,4 +1,12 @@
-import { BarChart3, LogIn, LogOut, Megaphone, User, UserPlus, Users } from "lucide-react";
+import {
+  BarChart3,
+  LogIn,
+  LogOut,
+  Megaphone,
+  User,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom"; // Import Link
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";

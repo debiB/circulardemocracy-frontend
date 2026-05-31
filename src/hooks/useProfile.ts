@@ -66,7 +66,7 @@ async function fetchStaffProfileDefaults(userId: string): Promise<{
 }> {
   const { data, error } = await getSupabase()
     .from("politician_staff_with_profile")
-    .select("firstname, lastname, job_title, politician_id")
+    .select("firstname, lastname, job_title")
     .eq("user_id", userId)
     .limit(1);
 
@@ -121,7 +121,6 @@ async function resolveProfile(
     firstname: pickFirstNonEmpty(fromRow.firstname, staff.firstname),
     lastname: pickFirstNonEmpty(fromRow.lastname, staff.lastname),
     job_title: pickFirstNonEmpty(fromRow.job_title, staff.job_title),
-    politician_id: staff.politician_id,
   };
 
   const needsAuthFallback =
@@ -134,7 +133,6 @@ async function resolveProfile(
     firstname: pickFirstNonEmpty(merged.firstname, authDefaults?.firstname),
     lastname: pickFirstNonEmpty(merged.lastname, authDefaults?.lastname),
     job_title: pickFirstNonEmpty(merged.job_title, authDefaults?.job_title),
-    politician_id: merged.politician_id ?? (typeof politicianIdFromMeta === 'number' ? politicianIdFromMeta : (typeof politicianIdFromMeta === 'string' ? parseInt(politicianIdFromMeta, 10) : null)),
   };
 }
 

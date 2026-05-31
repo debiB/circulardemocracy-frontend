@@ -144,26 +144,34 @@ export function useAnalytics(timeBucket: AnalyticsTimeBucket = "day") {
   });
 }
 
-export interface StatusCount {
-  status: string;
-  count: number;
-}
+export type StatusCount = {
+  total: number;
+  replied?: number;
+  sending?: number;
+  unanswered?: number;
+} & Record<string, number>;
 
 async function fetchByStatus(
   startDate?: Date,
   endDate?: Date,
-): Promise<StatusCount[]> {
+): Promise<StatusCount> {
   const { data, error } = await getSupabase().rpc("get_message_status_count", {
     from_date: startDate?.toISOString(),
     to_date: endDate?.toISOString(),
   });
-
-  console.log(data, error);
-  return data;
+  if (error) {
+    console.error(error);
+    return { total: -1 };
+  }
+  const result = Object.fromEntries(
+    data.map(({ status, count }) => [status, count]),
+  ) as StatusCount;
+  result.total = data.reduce((sum, { count }) => sum + count, 0);
+  return result;
 }
 
 export function useByStatus(startDate?: Date, endDate?: Date) {
-  return useQuery<StatusCount[], Error>({
+  return useQuery<StatusCount, Error>({
     queryKey: ["analytics", "messages-by-status", startDate, endDate],
     queryFn: () => fetchByStatus(startDate, endDate),
     refetchInterval: 60000,

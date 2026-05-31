@@ -17,7 +17,12 @@ interface AnalyticsContainerProps {
 export function AnalyticsContainer({
   timeBucket = "day",
 }: AnalyticsContainerProps) {
-  const { data, isLoading: isAnalyticsLoading, isError, error } = useAnalytics(timeBucket);
+  const {
+    data,
+    isLoading: isAnalyticsLoading,
+    isError,
+    error,
+  } = useAnalytics(timeBucket);
 
   const startDate = useMemo(() => {
     if (timeBucket === "day") {
@@ -28,7 +33,8 @@ export function AnalyticsContainer({
     return undefined;
   }, [timeBucket]);
 
-  const { data: statusData, isLoading: isStatusLoading } = useByStatus(startDate);
+  const { data: statusMetrics, isLoading: isStatusLoading } =
+    useByStatus(startDate);
 
   const chartTitle =
     timeBucket === "week" ? "Messages by week" : "What happened this week";
@@ -41,20 +47,6 @@ export function AnalyticsContainer({
       campaigns: dayData.campaigns,
     }));
   }, [data]);
-
-  const statusMetrics = useMemo(() => {
-    if (!statusData) return { total: 0, replied: 0, unanswered: 0 };
-
-    const total = statusData.reduce((sum, s) => sum + s.count, 0);
-    const replied =
-      statusData.find((s) => s.status === "replied" || s.status === "sent")
-        ?.count || 0;
-    const unanswered =
-      statusData.find((s) => s.status === "unanswered" || s.status === "pending")
-        ?.count || 0;
-
-    return { total, replied, unanswered };
-  }, [statusData]);
 
   if (isAnalyticsLoading || isStatusLoading) {
     return (
@@ -118,13 +110,13 @@ export function AnalyticsContainer({
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">Messages</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {statusMetrics.total}
+              {statusMetrics?.total}
             </p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">Replied</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {statusMetrics.replied}
+              {statusMetrics?.replied || 0}
             </p>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
@@ -132,9 +124,19 @@ export function AnalyticsContainer({
               Unanswered
             </p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {statusMetrics.unanswered}
+              {statusMetrics?.unanswered || 0}
             </p>
           </div>
+          {statusMetrics?.sending && (
+            <div className="bg-gray-100 dark:bg-gray-900/20 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Sending
+              </p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {statusMetrics.sending}
+              </p>
+            </div>
+          )}
         </div>
 
         <div>
