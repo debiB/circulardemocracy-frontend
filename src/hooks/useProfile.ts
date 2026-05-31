@@ -127,7 +127,6 @@ async function resolveProfile(
     !merged.firstname || !merged.lastname || !merged.job_title;
 
   const authDefaults = needsAuthFallback ? defaultsFromAuthUser(user) : null;
-  const politicianIdFromMeta = user.user_metadata?.politician_id;
 
   return {
     firstname: pickFirstNonEmpty(merged.firstname, authDefaults?.firstname),

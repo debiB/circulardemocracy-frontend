@@ -151,18 +151,26 @@ export type StatusCount = {
   unanswered?: number;
 } & Record<string, number>;
 
+type StatusCountRow = {
+  status: string;
+  count: number;
+};
 async function fetchByStatus(
   startDate?: Date,
   endDate?: Date,
 ): Promise<StatusCount> {
-  const { data, error } = await getSupabase().rpc("get_message_status_count", {
-    from_date: startDate?.toISOString(),
-    to_date: endDate?.toISOString(),
-  });
+  const { data: _data, error } = await getSupabase().rpc(
+    "get_message_status_count",
+    {
+      from_date: startDate?.toISOString(),
+      to_date: endDate?.toISOString(),
+    },
+  );
   if (error) {
     console.error(error);
     return { total: -1 };
   }
+  const data = _data as StatusCountRow[];
   const result = Object.fromEntries(
     data.map(({ status, count }) => [status, count]),
   ) as StatusCount;

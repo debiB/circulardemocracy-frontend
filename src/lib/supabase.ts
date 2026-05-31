@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -10,7 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   supabaseError =
     "Supabase URL or Anon Key is missing. Please check your environment variables.";
 } else {
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey);
 }
 
 /** May be null when env vars are missing (see {@link getSupabaseError}). */

@@ -257,7 +257,7 @@ export function CampaignMessagesPage() {
   };
 
   // JMAP Integration Point: On-demand message content fetching
-  const handleViewMessage = (messageId: number) => {
+  const handleViewMessage = (messageId: number, jmapid: string) => {
     // TODO: Implement JMAP integration to fetch message content from Stalwart
     // This is a placeholder integration point. Full JMAP logic is not implemented.
     //
@@ -274,7 +274,7 @@ export function CampaignMessagesPage() {
     //
     // For now, show placeholder alert
     alert(
-      `Message content fetching not yet implemented.\n\nMessage ID: ${messageId}\n\nTODO: Integrate JMAP to fetch content from Stalwart.\nTODO: Implement safe content rendering (sanitization/iframe).`,
+      `Message content fetching not yet implemented.\n\nMessage ID: ${messageId}\n\nTODO: display message ${jmapid}`,
     );
   };
 
@@ -436,7 +436,12 @@ export function CampaignMessagesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleViewMessage(message.id)}
+                              onClick={() =>
+                                handleViewMessage(
+                                  message.id,
+                                  message.external_id || "",
+                                )
+                              }
                               className="text-xs"
                               title={
                                 message.external_id || "View message content"
