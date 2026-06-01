@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CampaignReplyTemplatesDialog } from "@/components/dashboard/CampaignReplyTemplatesDialog";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
@@ -128,6 +128,7 @@ async function fetchCampaignMessages(
 export function CampaignMessagesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { data: campaign } = useSuspenseQuery<Campaign, Error>({
     queryKey: ["campaign", id!],
@@ -146,7 +147,9 @@ export function CampaignMessagesPage() {
   // Reply history dialog
   const [replyHistoryMessage, setReplyHistoryMessage] =
     useState<Message | null>(null);
-  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(
+    searchParams.get("create") === "true",
+  );
 
   const { data: messagesData } = useSuspenseQuery<
     { messages: Message[]; totalCount: number },
@@ -481,6 +484,7 @@ export function CampaignMessagesPage() {
           onOpenChange={setTemplatesDialogOpen}
           campaignId={campaign.id}
           campaignName={campaign.name}
+          defaultShowAddForm={searchParams.get("create") === "true"}
         />
 
         {/* Reply History Dialog */}

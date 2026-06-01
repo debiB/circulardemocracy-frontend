@@ -58,7 +58,13 @@ export function CampaignsWithoutReplyTemplateCard() {
             Your constituents are waiting
           </CardTitle>
           <CardDescription className={warningMutedClassName}>
-            Set up a template reply to start engaging.
+            <Link
+              to="/templates?create=true"
+              className="underline underline-offset-2 hover:text-amber-950 dark:hover:text-amber-50"
+            >
+              Set up a template reply
+            </Link>{" "}
+            to start engaging.
           </CardDescription>
         </div>
       </CardHeader>
@@ -74,7 +80,7 @@ export function CampaignsWithoutReplyTemplateCard() {
                 >
                   <CardContent className="p-0">
                     <Link
-                      to={`/campaigns/${campaign.campaignId}`}
+                      to={`/campaigns/${campaign.campaignId}?create=true`}
                       className="flex  items-center justify-between gap-1.5 px-2 py-1 text-sm font-medium text-amber-950 outline-offset-2 focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-50"
                     >
                       <span className="min-w-0 truncate">{campaign.name}</span>

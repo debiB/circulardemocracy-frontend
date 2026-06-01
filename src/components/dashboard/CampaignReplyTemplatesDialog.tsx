@@ -79,6 +79,7 @@ export interface CampaignReplyTemplatesDialogProps {
   onOpenChange: (open: boolean) => void;
   campaignId: number | null;
   campaignName: string;
+  defaultShowAddForm?: boolean;
 }
 
 export function CampaignReplyTemplatesDialog({
@@ -86,6 +87,7 @@ export function CampaignReplyTemplatesDialog({
   onOpenChange,
   campaignId,
   campaignName,
+  defaultShowAddForm,
 }: CampaignReplyTemplatesDialogProps) {
   const queryClient = useQueryClient();
   const { data: profile } = useProfile();
@@ -102,8 +104,11 @@ export function CampaignReplyTemplatesDialog({
       setShowAddForm(false);
       setEditingTemplate(null);
       setTemplatePendingDelete(null);
+    } else if (defaultShowAddForm) {
+      setShowAddForm(true);
+      setEditingTemplate(null);
     }
-  }, [open]);
+  }, [open, defaultShowAddForm]);
 
   const {
     data: templates = [],
