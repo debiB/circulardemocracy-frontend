@@ -37,11 +37,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Extract JMAP token from the Supabase session whenever user/auth changes
   useEffect(() => {
     if (!supabase) return;
+    const sb = supabase;
 
     const updateJmapToken = async () => {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await sb.auth.getSession();
       const token = session?.provider_token ?? null;
       setJmapToken(token);
     };
