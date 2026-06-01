@@ -11,9 +11,9 @@ import { LoginPage } from "./pages/LoginPage";
 import { PoliticianPage } from "./pages/PoliticianPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { MessagePage } from "./pages/MessagePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { UsersPage } from "./pages/UsersPage";
-
 // A simple spinner component for fallback
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -163,6 +163,7 @@ export function App() {
             }
           />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/message/:messageId" element={<MessagePage />} />
         </Route>
 
         <Route element={<PublicRoute />}>

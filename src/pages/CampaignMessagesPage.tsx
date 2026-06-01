@@ -1,8 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, History } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Eye, History } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CampaignReplyTemplatesDialog } from "@/components/dashboard/CampaignReplyTemplatesDialog";
+import { MessageViewDialog } from "@/components/dashboard/MessageViewDialog";
 import { PageLayout } from "@/components/PageLayout";
 import { ReplyHistoryDialog } from "@/components/ReplyHistoryDialog";
 import {
@@ -150,6 +151,8 @@ export function CampaignMessagesPage() {
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(
     searchParams.get("create") === "true",
   );
+  const [messageDialogId, setMessageDialogId] = useState<string | null>(null);
+  const [viewedMessageIds, setViewedMessageIds] = useState<Set<string>>(new Set());
 
   const { data: messagesData } = useSuspenseQuery<
     { messages: Message[]; totalCount: number },
@@ -259,27 +262,24 @@ export function CampaignMessagesPage() {
     }
   };
 
-  // JMAP Integration Point: On-demand message content fetching
-  const handleViewMessage = (messageId: number, jmapid: string) => {
-    // TODO: Implement JMAP integration to fetch message content from Stalwart
-    // This is a placeholder integration point. Full JMAP logic is not implemented.
-    //
-    // Expected implementation:
-    // 1. Fetch message content via JMAP API using messageId
-    // 2. Display content in a modal or side panel
-    // 3. CRITICAL: Do NOT render raw HTML directly
-    //
-    // Security considerations:
-    // - Message content MUST be sanitized before rendering
-    // - Options: Use DOMPurify library OR render in sandboxed iframe
-    // - TODO: Decide on sanitization strategy (DOMPurify vs iframe)
-    // - TODO: Implement chosen sanitization method
-    //
-    // For now, show placeholder alert
-    alert(
-      `Message content fetching not yet implemented.\n\nMessage ID: ${messageId}\n\nTODO: display message ${jmapid}`,
-    );
+  // Open message dialog and push URL for shareability
+  const handleViewMessage = (_messageId: number, jmapId: string) => {
+    if (!jmapId) return;
+    window.history.pushState(null, "", `/message/${encodeURIComponent(jmapId)}`);
+    setMessageDialogId(jmapId);
+    setViewedMessageIds((prev) => new Set(prev).add(jmapId));
   };
+
+  // Close dialog when browser back/forward navigates away from message URL
+  useEffect(() => {
+    const handlePopState = () => {
+      if (messageDialogId) {
+        setMessageDialogId(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [messageDialogId]);
 
   return (
     <PageLayout>
@@ -450,7 +450,14 @@ export function CampaignMessagesPage() {
                                 message.external_id || "View message content"
                               }
                             >
-                              View
+                              <Eye
+                                className={`h-3 w-3 ${
+                                  message.external_id &&
+                                  viewedMessageIds.has(message.external_id)
+                                    ? "text-primary"
+                                    : "text-muted-foreground"
+                                }`}
+                              />
                             </Button>
                             {(message.reply_template_id ||
                               message.reply_sent_at) && (
@@ -496,12 +503,20 @@ export function CampaignMessagesPage() {
           />
         )}
 
-        {/* Message Content Display - Placeholder
-            RESOLVED: Message content is fetched on-demand via JMAP (not in table)
-            Implementation: handleViewMessage() provides integration point
-            TODO: Complete JMAP integration with Stalwart
-            TODO: Implement safe content rendering (sanitization required)
-        */}
+        {/* Message View Dialog */}
+        <MessageViewDialog
+          messageId={messageDialogId || ""}
+          open={!!messageDialogId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setMessageDialogId(null);
+              if (window.location.pathname.startsWith("/message/")) {
+                window.history.back();
+              }
+            }
+          }}
+        />
+
       </div>
     </PageLayout>
   );
