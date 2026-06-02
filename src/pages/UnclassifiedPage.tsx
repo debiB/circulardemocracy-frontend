@@ -21,6 +21,7 @@ interface Message {
   reply_sent_at: string | null;
   reply_template_id: number | null;
   processing_status: string;
+  reply_id: string | null;
 }
 
 async function fetchUnclassifiedMessages(
@@ -33,7 +34,7 @@ async function fetchUnclassifiedMessages(
     const { data, error, count } = await getSupabase()
       .from("messages")
       .select(
-        "id, external_id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status",
+        "id, external_id, sender_country, duplicate_rank, classification_confidence, language, received_at, processed_at, reply_sent_at, reply_template_id, processing_status, reply_id",
         { count: "exact" },
       )
       .is("campaign_id", null)
@@ -113,6 +114,21 @@ export function UnclassifiedPage() {
     setViewedMessageIds((prev) => new Set(prev).add(jmapId));
   };
 
+  // Open the reply message dialog
+  const handleViewReply = (message: Message) => {
+    if (!message.reply_id) return;
+    window.history.pushState(
+      null,
+      "",
+      `/message/${encodeURIComponent(message.reply_id)}`,
+    );
+    setMessageDialogMsg({
+      ...message,
+      external_id: message.reply_id,
+    });
+    setViewedMessageIds((prev) => new Set(prev).add(message.reply_id!));
+  };
+
   // Close dialog when browser back/forward navigates away from message URL
   useEffect(() => {
     const handlePopState = () => {
@@ -147,6 +163,7 @@ export function UnclassifiedPage() {
               onPageChange={setCurrentPage}
               onViewMessage={handleViewMessage}
               onViewHistory={setReplyHistoryMessage}
+              onViewReply={handleViewReply}
               onClassify={setClassifyingMessage}
               viewedMessageIds={viewedMessageIds}
               replyStatusFilter={replyStatusFilter}

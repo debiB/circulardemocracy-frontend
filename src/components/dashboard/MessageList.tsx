@@ -1,7 +1,6 @@
 import { ChevronLeft, ChevronRight, Eye, History, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  getReplyStatus,
   ReplyStatusFilter,
   type ReplyStatusType,
 } from "@/components/ReplyStatus";
@@ -19,6 +18,7 @@ interface Message {
   reply_sent_at: string | null;
   reply_template_id: number | null;
   processing_status: string;
+  reply_id: string | null;
 }
 
 interface MessageListProps {
@@ -29,6 +29,7 @@ interface MessageListProps {
   onPageChange: (page: number) => void;
   onViewMessage: (messageId: number, jmapId: string) => void;
   onViewHistory: (message: Message) => void;
+  onViewReply?: (message: Message) => void;
   onClassify?: (message: Message) => void;
   viewedMessageIds: Set<string>;
   replyStatusFilter: ReplyStatusType | "all";
@@ -46,6 +47,7 @@ export function MessageList({
   onPageChange,
   onViewMessage,
   onViewHistory,
+  onViewReply,
   onClassify,
   viewedMessageIds,
   replyStatusFilter,
@@ -117,15 +119,28 @@ export function MessageList({
                     )}
                   </td>
                   <td className="py-2 px-4 border-b">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        message.processing_status === "unanswered"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {message.processing_status}
-                    </span>
+                    {onViewReply && message.reply_id && message.processing_status === "replied" ? (
+                      <button
+                        type="button"
+                        className={`px-2 py-1 rounded text-xs cursor-pointer hover:opacity-80 ${
+                          "bg-green-100 text-green-800"
+                        }`}
+                        title="View reply message"
+                        onClick={() => onViewReply(message)}
+                      >
+                        {message.processing_status}
+                      </button>
+                    ) : (
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          message.processing_status === "unanswered"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {message.processing_status}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2 px-4 border-b">
                     <div className="flex gap-1">
