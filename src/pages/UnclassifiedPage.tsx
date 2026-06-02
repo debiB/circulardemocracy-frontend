@@ -1,6 +1,9 @@
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { Suspense, useEffect, useState } from "react";
-import { Forward, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ClassifyDialog } from "@/components/dashboard/ClassifyDialog";
 import { MessageList } from "@/components/dashboard/MessageList";
@@ -11,7 +14,6 @@ import { getReplyStatus, type ReplyStatusType } from "@/components/ReplyStatus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSupabase } from "@/lib/supabase";
-import type { JmapMessage } from "jmap-cli";
 
 interface Message {
   id: number;
@@ -75,12 +77,15 @@ export function UnclassifiedPage() {
   // Reply history dialog
   const [replyHistoryMessage, setReplyHistoryMessage] =
     useState<Message | null>(null);
-  const [messageDialogMsg, setMessageDialogMsg] = useState<Message | null>(null);
+  const [messageDialogMsg, setMessageDialogMsg] = useState<Message | null>(
+    null,
+  );
   const [viewedMessageIds, setViewedMessageIds] = useState<Set<string>>(
     new Set(),
   );
-  const [classifyingMessage, setClassifyingMessage] =
-    useState<Message | null>(null);
+  const [classifyingMessage, setClassifyingMessage] = useState<Message | null>(
+    null,
+  );
 
   const { data: messagesData } = useSuspenseQuery<
     { messages: Message[]; totalCount: number },
@@ -97,10 +102,10 @@ export function UnclassifiedPage() {
     replyStatusFilter === "all"
       ? allMessages
       : allMessages.filter(
-          (msg) =>
-            getReplyStatus(msg.reply_sent_at, msg.reply_template_id) ===
-            replyStatusFilter,
-        );
+        (msg) =>
+          getReplyStatus(msg.reply_sent_at, msg.reply_template_id) ===
+          replyStatusFilter,
+      );
 
   const totalCount = messagesData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -176,8 +181,7 @@ export function UnclassifiedPage() {
       }
 
       const politicianEmail = politician.reply_to || politician.email;
-      const constituent =
-        jmapMessage.replyTo?.[0] ?? jmapMessage.from?.[0];
+      const constituent = jmapMessage.replyTo?.[0] ?? jmapMessage.from?.[0];
 
       const constituentEmail = constituent?.email;
       const constituentName = constituent?.name || constituentEmail;
@@ -193,22 +197,21 @@ export function UnclassifiedPage() {
           ? jmapMessage.textBody
           : Array.isArray(jmapMessage.textBody)
             ? jmapMessage.textBody
-                .map((p) =>
-                  typeof p === "string" ? p : (p as { partId: string }).partId,
-                )
-                .join("\n")
+              .map((p) =>
+                typeof p === "string" ? p : (p as { partId: string }).partId,
+              )
+              .join("\n")
             : "(no text content)");
 
       // Forward: send from the politician's mailbox with the constituent's
       // name as sender, so replies route back to the constituent via replyTo
-      await (jmapClient.sendEmail as (opts: Record<string, unknown>) => Promise<Record<string, unknown>>)({
+      await jmapClient.sendEmail({
         from: politicianEmail,
         fromName: constituentName,
         to: politicianEmail,
-        replyTo: constituentEmail,
         subject: jmapMessage.subject || "(no subject)",
         text: bodyText,
-      });
+      } as import("jmap-cli").SendEmailOptions);
     },
     onSuccess: () => {
       toast.success("Message forwarded to your email");
@@ -276,7 +279,6 @@ export function UnclassifiedPage() {
           open={!!messageDialogMsg}
           replySentAt={messageDialogMsg?.reply_sent_at ?? null}
           replyTemplateId={messageDialogMsg?.reply_template_id ?? null}
-
           onOpenChange={(open) => {
             if (!open) {
               setMessageDialogMsg(null);

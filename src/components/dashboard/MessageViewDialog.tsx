@@ -105,10 +105,15 @@ function MessageContent({
       toast.error(err.message || "Failed to send reply");
     },
   });
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+        {viewedMessage.from[0]?.name && (
+          <>
+            <span className="font-medium text-muted-foreground">From:</span>
+            <span>{viewedMessage.from[0].name.toLocaleString()}</span>
+          </>
+        )}
         <span className="font-medium text-muted-foreground">
           {viewedMessage.replyTo && viewedMessage.replyTo.length > 0
             ? "Reply-To:"
