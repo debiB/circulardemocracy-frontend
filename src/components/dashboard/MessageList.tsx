@@ -49,6 +49,7 @@ export function MessageList({
   onViewMessage,
   onViewHistory,
   onViewReply,
+  onForward,
   onClassify,
   viewedMessageIds,
   replyStatusFilter,
@@ -189,6 +190,17 @@ export function MessageList({
                           title="Classify to campaign"
                         >
                           <Tag className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {onForward && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onForward(message)}
+                          className="text-xs"
+                          title="Forward to politician"
+                        >
+                          <Forward className="h-3 w-3" />
                         </Button>
                       )}
                     </div>
