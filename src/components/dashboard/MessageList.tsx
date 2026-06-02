@@ -1,4 +1,11 @@
-import { ChevronLeft, ChevronRight, Eye, Forward, History, Tag } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Forward,
+  History,
+  Tag,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ReplyStatusFilter,
@@ -60,9 +67,7 @@ export function MessageList({
 }: MessageListProps) {
   return (
     <div className="space-y-4">
-      {title && (
-        <h2 className="text-xl font-semibold text-primary">{title}</h2>
-      )}
+      {title && <h2 className="text-xl font-semibold text-primary">{title}</h2>}
 
       {/* Reply status filter */}
       {showReplyFilter && (
@@ -98,13 +103,12 @@ export function MessageList({
                   </td>
                   <td className="py-2 px-4 border-b">
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        message.classification_confidence >= 0.7
+                      className={`px-2 py-1 rounded text-xs ${message.classification_confidence >= 0.7
                           ? "bg-green-100 text-green-800"
                           : message.classification_confidence >= 0.4
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-red-100 text-red-800"
-                      }`}
+                        }`}
                     >
                       {(message.classification_confidence * 100).toFixed(0)}%
                     </span>
@@ -121,12 +125,12 @@ export function MessageList({
                     )}
                   </td>
                   <td className="py-2 px-4 border-b">
-                    {onViewReply && message.reply_id && message.processing_status === "replied" ? (
+                    {onViewReply &&
+                      message.reply_id &&
+                      message.processing_status === "replied" ? (
                       <button
                         type="button"
-                        className={`px-2 py-1 rounded text-xs cursor-pointer hover:opacity-80 ${
-                          "bg-green-100 text-green-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-xs cursor-pointer hover:opacity-80 ${"bg-green-100 text-green-800"}`}
                         title="View reply message"
                         onClick={() => onViewReply(message)}
                       >
@@ -134,11 +138,10 @@ export function MessageList({
                       </button>
                     ) : (
                       <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          message.processing_status === "unanswered"
+                        className={`px-2 py-1 rounded text-xs ${message.processing_status === "unanswered"
                             ? "bg-blue-100 text-blue-800"
                             : "bg-gray-100 text-gray-800"
-                        }`}
+                          }`}
                       >
                         {message.processing_status}
                       </span>
@@ -150,27 +153,20 @@ export function MessageList({
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          onViewMessage(
-                            message.id,
-                            message.external_id || "",
-                          )
+                          onViewMessage(message.id, message.external_id || "")
                         }
                         className="text-xs"
-                        title={
-                          message.external_id || "View message content"
-                        }
+                        title={message.external_id || "View message content"}
                       >
                         <Eye
-                          className={`h-3 w-3 ${
-                            message.external_id &&
-                            viewedMessageIds.has(message.external_id)
+                          className={`h-3 w-3 ${message.external_id &&
+                              viewedMessageIds.has(message.external_id)
                               ? "text-primary"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         />
                       </Button>
-                      {(message.reply_template_id ||
-                        message.reply_sent_at) && (
+                      {(message.reply_template_id || message.reply_sent_at) && (
                         <Button
                           variant="ghost"
                           size="sm"
