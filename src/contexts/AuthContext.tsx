@@ -5,6 +5,49 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import JmapClient from "jmap-cli";
 
+const JMAP_TOKEN_KEY = "jmap_token";
+const JMAP_REFRESH_TOKEN_KEY = "jmap_refresh_token";
+
+function loadPersistedJmapToken(): string | null {
+  try {
+    return sessionStorage.getItem(JMAP_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistJmapToken(token: string | null) {
+  try {
+    if (token) {
+      sessionStorage.setItem(JMAP_TOKEN_KEY, token);
+    } else {
+      sessionStorage.removeItem(JMAP_TOKEN_KEY);
+    }
+  } catch {
+    // storage full or unavailable — ignore
+  }
+}
+
+function loadPersistedRefreshToken(): string | null {
+  try {
+    return sessionStorage.getItem(JMAP_REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistRefreshToken(token: string | null) {
+  try {
+    if (token) {
+      sessionStorage.setItem(JMAP_REFRESH_TOKEN_KEY, token);
+    } else {
+      sessionStorage.removeItem(JMAP_REFRESH_TOKEN_KEY);
+    }
+  } catch {
+    // storage full or unavailable — ignore
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -32,26 +75,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [jmapToken, setJmapToken] = useState<string | null>(null);
-  const [jmapRefreshToken, setJmapRefreshToken] = useState<string | null>(null);
+  const [jmapToken, setJmapToken] = useState<string | null>(
+    () => loadPersistedJmapToken(),
+  );
+  const [jmapRefreshToken, setJmapRefreshToken] = useState<string | null>(
+    () => loadPersistedRefreshToken(),
+  );
 
-  // Extract JMAP token from the Supabase session whenever user/auth changes
+  // Persist JMAP tokens to sessionStorage so they survive page reloads / tab switches
   useEffect(() => {
-    if (!supabase) return;
-    const sb = supabase;
+    persistJmapToken(jmapToken);
+  }, [jmapToken]);
 
-    const updateJmapToken = async () => {
-      const {
-        data: { session },
-      } = await sb.auth.getSession();
-      const token = session?.provider_token ?? null;
-      setJmapToken(token);
-      const refreshToken = session?.provider_refresh_token ?? null;
-      setJmapRefreshToken(refreshToken);
-    };
-
-    updateJmapToken();
-  }, [user]);
+  useEffect(() => {
+    persistRefreshToken(jmapRefreshToken);
+  }, [jmapRefreshToken]);
 
   // Create the JmapClient instance when token and baseUrl are both available
   const jmapClient = useMemo<JmapClient | null>(() => {
@@ -70,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [jmapToken, jmapRefreshToken]);
 
+  // Main auth listener — also captures provider tokens on every auth event
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
@@ -80,12 +119,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (_event, session) => {
         setUser(session?.user || null);
         setLoading(false);
+
+        // Capture provider tokens from any auth event (login, refresh, etc.)
+        const token = session?.provider_token ?? null;
+        if (token) {
+          setJmapToken(token);
+          setJmapRefreshToken(session?.provider_refresh_token ?? null);
+        }
+        // If the session has no provider_token, keep whatever we already have
       },
     );
 
+    // Initial session fetch
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       setLoading(false);
+      const token = session?.provider_token ?? null;
+      if (token) {
+        setJmapToken(token);
+        setJmapRefreshToken(session?.provider_refresh_token ?? null);
+      }
     });
 
     return () => {
@@ -100,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "custom:stalwart",
       options: {
-        scopes: "openid email profile", // Requests full OIDC context from Stalwart
+        scopes: "openid email profile",
         redirectTo: `${window.location.origin}/`,
       },
     });
@@ -130,8 +183,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!supabase) {
       return { error: null };
     }
-    const { error } = await supabase.auth.signOut();
-    return { error: error instanceof AuthApiError ? error : null };
+    await supabase.auth.signOut();
+    // Clear JMAP tokens on explicit logout
+    setJmapToken(null);
+    setJmapRefreshToken(null);
+    return { error: null };
   };
 
   return (
