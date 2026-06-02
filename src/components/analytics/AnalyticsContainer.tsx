@@ -100,13 +100,14 @@ export function AnalyticsContainer({
     );
   }
 
+  const cols = statusMetrics?.sending ? 4 : 3;
   return (
     <Card className="p-4">
       <CardHeader>
         <CardTitle className="text-primary">{chartTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-${cols} gap-4`}>
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">Messages</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
