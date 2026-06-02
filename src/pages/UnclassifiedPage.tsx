@@ -70,7 +70,7 @@ export function UnclassifiedPage() {
   // Reply history dialog
   const [replyHistoryMessage, setReplyHistoryMessage] =
     useState<Message | null>(null);
-  const [messageDialogId, setMessageDialogId] = useState<string | null>(null);
+  const [messageDialogMsg, setMessageDialogMsg] = useState<Message | null>(null);
   const [viewedMessageIds, setViewedMessageIds] = useState<Set<string>>(
     new Set(),
   );
@@ -108,20 +108,21 @@ export function UnclassifiedPage() {
       "",
       `/message/${encodeURIComponent(jmapId)}`,
     );
-    setMessageDialogId(jmapId);
+    const msg = allMessages.find((m) => m.external_id === jmapId) ?? null;
+    setMessageDialogMsg(msg);
     setViewedMessageIds((prev) => new Set(prev).add(jmapId));
   };
 
   // Close dialog when browser back/forward navigates away from message URL
   useEffect(() => {
     const handlePopState = () => {
-      if (messageDialogId) {
-        setMessageDialogId(null);
+      if (messageDialogMsg) {
+        setMessageDialogMsg(null);
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [messageDialogId]);
+  }, [messageDialogMsg]);
 
   return (
     <PageLayout>
@@ -167,11 +168,14 @@ export function UnclassifiedPage() {
 
         {/* Message View Dialog */}
         <MessageViewDialog
-          messageId={messageDialogId || ""}
-          open={!!messageDialogId}
+          messageId={messageDialogMsg?.external_id || ""}
+          open={!!messageDialogMsg}
+          replySentAt={messageDialogMsg?.reply_sent_at ?? null}
+          replyTemplateId={messageDialogMsg?.reply_template_id ?? null}
+
           onOpenChange={(open) => {
             if (!open) {
-              setMessageDialogId(null);
+              setMessageDialogMsg(null);
               if (window.location.pathname.startsWith("/message/")) {
                 window.history.back();
               }

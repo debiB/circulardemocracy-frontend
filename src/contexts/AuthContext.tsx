@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [jmapToken, setJmapToken] = useState<string | null>(null);
+  const [jmapRefreshToken, setJmapRefreshToken] = useState<string | null>(null);
 
   // Extract JMAP token from the Supabase session whenever user/auth changes
   useEffect(() => {
@@ -45,6 +46,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } = await sb.auth.getSession();
       const token = session?.provider_token ?? null;
       setJmapToken(token);
+      const refreshToken = session?.provider_refresh_token ?? null;
+      setJmapRefreshToken(refreshToken);
     };
 
     updateJmapToken();
@@ -60,8 +63,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
 
-    return new JmapClient({ baseUrl: jmapUrl, token: jmapToken });
-  }, [jmapToken]);
+    return new JmapClient({
+      baseUrl: jmapUrl,
+      token: jmapToken,
+      refreshToken: jmapRefreshToken ?? undefined,
+    });
+  }, [jmapToken, jmapRefreshToken]);
 
   useEffect(() => {
     if (!supabase) {
