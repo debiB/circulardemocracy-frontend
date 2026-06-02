@@ -115,33 +115,29 @@ function MessageContent({
             : "From:"}
         </span>
         <span>
-          {(
-            viewedMessage.replyTo && viewedMessage.replyTo.length > 0
-              ? viewedMessage.replyTo
-              : viewedMessage.from
+          {(viewedMessage.replyTo && viewedMessage.replyTo.length > 0
+            ? viewedMessage.replyTo
+            : viewedMessage.from
           )
-            ?.map((a) =>
-              a.name ? `${a.name} <${a.email}>` : a.email,
-            )
+            ?.map((a) => (a.name ? `${a.name} <${a.email}>` : a.email))
             .join(", ") || "Unknown"}
         </span>
         <span className="font-medium text-muted-foreground">To:</span>
         <span>
-          {viewedMessage.to
-            ?.map((a) => a.name || a.email)
-            .join(", ") || "Unknown"}
+          {viewedMessage.to?.map((a) => a.name || a.email).join(", ") ||
+            "Unknown"}
         </span>
         {viewedMessage.receivedAt && (
           <>
             <span className="font-medium text-muted-foreground">Date:</span>
-            <span>
-              {new Date(viewedMessage.receivedAt).toLocaleString()}
-            </span>
+            <span>{new Date(viewedMessage.receivedAt).toLocaleString()}</span>
           </>
         )}
         {replySentAt && (
           <>
-            <span className="font-medium text-muted-foreground">Replied on:</span>
+            <span className="font-medium text-muted-foreground">
+              Replied on:
+            </span>
             <span className="flex items-center gap-2">
               {new Date(replySentAt).toLocaleString()}
               <Button
@@ -172,10 +168,12 @@ function MessageContent({
             ? viewedMessage.textBody
             : Array.isArray(viewedMessage.textBody)
               ? viewedMessage.textBody
-                  .map((p) =>
-                    typeof p === "string" ? p : (p as { partId: string }).partId,
-                  )
-                  .join("\n")
+                .map((p) =>
+                  typeof p === "string"
+                    ? p
+                    : (p as { partId: string }).partId,
+                )
+                .join("\n")
               : "(no text content)")}
       </div>
     </div>
@@ -201,7 +199,6 @@ export function MessageViewDialog({
     setLoading(true);
     setError(null);
     setViewedMessage(null);
-
     jmapClient
       .getMessage({ messageId })
       .then((message) => {

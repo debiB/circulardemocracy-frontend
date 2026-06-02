@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye, History, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Forward, History, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ReplyStatusFilter,
@@ -30,6 +30,7 @@ interface MessageListProps {
   onViewMessage: (messageId: number, jmapId: string) => void;
   onViewHistory: (message: Message) => void;
   onViewReply?: (message: Message) => void;
+  onForward?: (message: Message) => void;
   onClassify?: (message: Message) => void;
   viewedMessageIds: Set<string>;
   replyStatusFilter: ReplyStatusType | "all";
