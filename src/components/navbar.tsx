@@ -1,11 +1,11 @@
 import {
   BarChart3,
+  Inbox,
   LogIn,
   LogOut,
   Megaphone,
   User,
   UserPlus,
-  Users,
 } from "lucide-react";
 import { Link } from "react-router-dom"; // Import Link
 import logo from "@/assets/logo.png";
@@ -50,15 +50,17 @@ function NavbarContent() {
       <NavigationMenuItem>
         <NavigationMenuLink asChild>
           <Link
-            to="/users"
+            to="/unclassified"
             className="flex items-center gap-2 font-medium text-gray-700 hover:text-gray-900"
-            title="Team"
+            title="Unclassified"
           >
-            <Users className="h-5 w-5" />
-            <span className="hidden md:inline">Team</span>
+            <Inbox className="h-5 w-5" />
+            <span className="hidden md:inline">Unclassified</span>
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
+      {/* Team link hidden for now */}
+
       <NavigationMenuItem>
         <NavigationMenuLink asChild>
           <Link

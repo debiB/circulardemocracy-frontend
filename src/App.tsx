@@ -13,6 +13,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { MessagePage } from "./pages/MessagePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
+import { UnclassifiedPage } from "./pages/UnclassifiedPage";
 import { UsersPage } from "./pages/UsersPage";
 // A simple spinner component for fallback
 const LoadingSpinner = () => (
@@ -162,6 +163,7 @@ export function App() {
               </Suspense>
             }
           />
+          <Route path="/unclassified" element={<UnclassifiedPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/message/:messageId" element={<MessagePage />} />
         </Route>
