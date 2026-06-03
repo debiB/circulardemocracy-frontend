@@ -1,12 +1,11 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CampaignReplyTemplatesDialog } from "@/components/dashboard/CampaignReplyTemplatesDialog";
 import { PageLayout } from "@/components/PageLayout"; // Import PageLayout
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
-import { supabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils"; // Import the new utility
+import { useCampaignsWithExtras } from "@/lib/campaign";
 
 // A simple spinner component for fallback within the card
 const LoadingSpinner = () => (
@@ -15,54 +14,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-interface Campaign {
-  id: number;
-  name: string;
-  created_at: string;
-  updated_at: string; // Assuming 'updated_at' for modified_at
-  // Add other campaign properties as needed
-}
-
-interface CampaignWithExtras extends Campaign {
-  hasReplyTemplate: boolean;
-  templateId?: number;
-  replyTemplateCount: number;
-  activeReplyTemplateCount: number;
-  messageCount: number;
-}
-
-async function fetchCampaignsWithExtras(): Promise<CampaignWithExtras[]> {
-  try {
-    const { data, error } = await supabase!
-      .from("campaign_with_extra")
-      .select(
-        "id, name, created_at, updated_at, has_reply_template, template_id, reply_template_count, active_reply_template_count, message_count",
-      )
-      .gt("message_count", 0)
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []).map((campaign: any) => ({
-      id: campaign.id,
-      name: campaign.name,
-      created_at: campaign.created_at,
-      updated_at: campaign.updated_at,
-      hasReplyTemplate: Boolean(campaign.has_reply_template),
-      templateId: campaign.template_id ?? undefined,
-      replyTemplateCount: Number(campaign.reply_template_count) || 0,
-      activeReplyTemplateCount:
-        Number(campaign.active_reply_template_count) || 0,
-      messageCount: campaign.message_count ?? 0,
-    }));
-  } catch (error) {
-    console.error("Error fetching campaigns with extras:", error);
-    throw error; // Re-throw for error boundary to catch
-  }
-}
-
 export function CampaignsPage() {
   const navigate = useNavigate();
   const [templatesDialogCampaign, setTemplatesDialogCampaign] = useState<{
@@ -70,10 +21,7 @@ export function CampaignsPage() {
     name: string;
   } | null>(null);
 
-  const { data: campaigns } = useSuspenseQuery<CampaignWithExtras[], Error>({
-    queryKey: ["campaigns-with-extras"],
-    queryFn: fetchCampaignsWithExtras,
-  });
+  const { campaigns } = useCampaignsWithExtras();
 
   return (
     <PageLayout>

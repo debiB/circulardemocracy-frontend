@@ -19,7 +19,7 @@ import {
   updateReplyTemplate,
 } from "@/lib/replyTemplateMutations";
 import { getSupabase } from "@/lib/supabase";
-
+import { invalidateCampaignCache } from "@/lib/campaign";
 const loadingFallback = (
   <div className="flex items-center justify-center h-32">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -134,9 +134,7 @@ export function CampaignReplyTemplatesDialog({
       await queryClient.invalidateQueries({
         queryKey: ["campaign-reply-templates", campaignId],
       });
-      await queryClient.invalidateQueries({
-        queryKey: ["campaigns-with-extras"],
-      });
+      await invalidateCampaignCache(queryClient);
       await refetch();
     },
     onError: (err: Error) => {
@@ -152,9 +150,7 @@ export function CampaignReplyTemplatesDialog({
       await queryClient.invalidateQueries({
         queryKey: ["campaign-reply-templates", campaignId],
       });
-      await queryClient.invalidateQueries({
-        queryKey: ["campaigns-with-extras"],
-      });
+      await invalidateCampaignCache(queryClient);
       await refetch();
     },
     onError: (err: Error) => {
@@ -169,9 +165,7 @@ export function CampaignReplyTemplatesDialog({
       await queryClient.invalidateQueries({
         queryKey: ["campaign-reply-templates", campaignId],
       });
-      await queryClient.invalidateQueries({
-        queryKey: ["campaigns-with-extras"],
-      });
+      await invalidateCampaignCache(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["reply-templates"] });
       await refetch();
     },
@@ -350,9 +344,8 @@ export function CampaignReplyTemplatesDialog({
                         await queryClient.invalidateQueries({
                           queryKey: ["campaign-reply-templates", campaignId],
                         });
-                        await queryClient.invalidateQueries({
-                          queryKey: ["campaigns-with-extras"],
-                        });
+                        await invalidateCampaignCache(queryClient);
+
                         await refetch();
                       }}
                       onCancel={() => setShowAddForm(false)}
@@ -387,9 +380,7 @@ export function CampaignReplyTemplatesDialog({
                         await queryClient.invalidateQueries({
                           queryKey: ["campaign-reply-templates", campaignId],
                         });
-                        await queryClient.invalidateQueries({
-                          queryKey: ["campaigns-with-extras"],
-                        });
+                        await invalidateCampaignCache(queryClient);
                         await refetch();
                       }}
                       onCancel={() => setEditingTemplate(null)}

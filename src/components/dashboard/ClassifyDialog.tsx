@@ -19,11 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getSupabase } from "@/lib/supabase";
-
-interface Campaign {
-  id: number;
-  name: string;
-}
+import { useCampaignsWithExtras } from "@/lib/campaign";
 
 interface Message {
   id: number;
@@ -37,22 +33,6 @@ interface Message {
   reply_sent_at: string | null;
   reply_template_id: number | null;
   processing_status: string;
-}
-
-async function fetchCampaigns(): Promise<Campaign[]> {
-  const { data, error } = await getSupabase()
-    .from("campaigns")
-    .select("id, name")
-    .order("name");
-
-  if (error) {
-    console.error("Error fetching campaigns:", error);
-    throw error;
-  }
-
-  return (data ?? []).filter(
-    (row): row is Campaign => row != null && typeof row.id === "number",
-  );
 }
 
 interface ClassifyDialogProps {
@@ -70,10 +50,7 @@ export function ClassifyDialog({
 }: ClassifyDialogProps) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
 
-  const { data: campaigns } = useSuspenseQuery<Campaign[], Error>({
-    queryKey: ["campaigns"],
-    queryFn: fetchCampaigns,
-  });
+  const { campaigns } = useCampaignsWithExtras();
 
   const classifyMutation = useMutation({
     mutationFn: async (campaignId: number) => {
@@ -122,10 +99,7 @@ export function ClassifyDialog({
             </SelectTrigger>
             <SelectContent>
               {campaigns.map((campaign) => (
-                <SelectItem
-                  key={campaign.id}
-                  value={campaign.id.toString()}
-                >
+                <SelectItem key={campaign.id} value={campaign.id.toString()}>
                   {campaign.name}
                 </SelectItem>
               ))}

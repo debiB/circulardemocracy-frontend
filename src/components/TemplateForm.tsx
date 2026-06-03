@@ -33,7 +33,7 @@ import {
   updateReplyTemplate,
 } from "@/lib/replyTemplateMutations";
 import { getSupabase } from "@/lib/supabase";
-
+import { invalidateCampaignCache } from "@/lib/campaign";
 interface Campaign {
   id: number;
   name: string;
@@ -168,7 +168,7 @@ export function TemplateForm({
       insertReplyTemplate(buildInsertPayload(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reply-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["campaigns-with-extras"] });
+      invalidateCampaignCache(queryClient);
       queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
       toast.success("Template created successfully");
       onSuccess?.();
@@ -183,7 +183,7 @@ export function TemplateForm({
       updateReplyTemplate(vars.id, buildInsertPayload(vars.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reply-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["campaigns-with-extras"] });
+      invalidateCampaignCache(queryClient);
       queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
       toast.success("Template updated successfully");
       onSuccess?.();
@@ -323,7 +323,11 @@ export function TemplateForm({
           <Select
             value={watch("layout_type")}
             onValueChange={(value) => {
-              setValue("layout_type", value as "text_only" | "standard_header" | "EP", { shouldValidate: true });
+              setValue(
+                "layout_type",
+                value as "text_only" | "standard_header" | "EP",
+                { shouldValidate: true },
+              );
             }}
           >
             <SelectTrigger className="w-full">
